@@ -230,3 +230,24 @@ class BlastRadiusReport(BaseModel):
     @property
     def has_breaking_changes(self) -> bool:
         return any(bool(m.broken_columns) for m in self.downstream_models)
+
+
+class FileChangeType(str, Enum):
+    """Type of Git change on a file."""
+
+    ADDED = "ADDED"
+    MODIFIED = "MODIFIED"
+    DELETED = "DELETED"
+    RENAMED = "RENAMED"
+
+
+class ChangedFile(BaseModel):
+    """Represents a file changed between base and head or in working tree."""
+
+    model_config = ConfigDict(frozen=True)
+
+    path: str
+    change_type: FileChangeType
+    base_content: str | None = None
+    head_content: str | None = None
+    old_path: str | None = None

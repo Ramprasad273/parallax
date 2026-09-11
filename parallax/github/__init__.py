@@ -1,0 +1,1 @@
+"""Parallax GitHub Action integration."""

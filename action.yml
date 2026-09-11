@@ -1,0 +1,58 @@
+name: "Parallax Blast Radius CI"
+description: "Zero-Config Blast Radius & Semantic Drift CI for SQL and dbt"
+author: "Parallax Contributors"
+branding:
+  icon: "git-pull-request"
+  color: "red"
+
+inputs:
+  manifest:
+    description: "Path to dbt target/manifest.json"
+    required: false
+    default: "target/manifest.json"
+  base:
+    description: "Git base reference branch"
+    required: false
+    default: "origin/main"
+  head:
+    description: "Git head reference branch"
+    required: false
+    default: "HEAD"
+  dialect:
+    description: "SQL dialect (snowflake, bigquery, postgres, duckdb, databricks)"
+    required: false
+    default: "snowflake"
+  fail_on:
+    description: "Minimum risk severity to block PR (CRITICAL, HIGH, MEDIUM, LOW, NEVER)"
+    required: false
+    default: "CRITICAL"
+  github_token:
+    description: "GitHub token for commenting on PRs"
+    required: false
+    default: ${{ github.token }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install Parallax
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        pip install parallax-ci
+
+    - name: Run Parallax Check
+      shell: bash
+      env:
+        INPUT_MANIFEST: ${{ inputs.manifest }}
+        INPUT_BASE: ${{ inputs.base }}
+        INPUT_HEAD: ${{ inputs.head }}
+        INPUT_DIALECT: ${{ inputs.dialect }}
+        INPUT_FAIL_ON: ${{ inputs.fail_on }}
+        INPUT_GITHUB_TOKEN: ${{ inputs.github_token }}
+      run: |
+        python -m parallax.github.action

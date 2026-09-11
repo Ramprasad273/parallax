@@ -98,3 +98,42 @@ def test_update_existing_comment_in_place() -> None:
         patch_call = mock_urlopen.call_args_list[1][0][0]
         assert patch_call.method == "PATCH"
         assert "/issues/comments/9999" in patch_call.full_url
+
+
+from parallax.github.action import run_action
+
+
+def test_run_action_no_changes(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "parallax.core.git.GitResolver.get_changed_sql_files", lambda *args, **kwargs: []
+    )
+    with pytest.raises(SystemExit) as exc:
+        run_action()
+    assert exc.value.code == 0
+
+
+def test_run_action_with_changes_and_comment(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from parallax.core.models import ChangedFile, FileChangeType
+
+    cf = ChangedFile(
+        path="models/staging/stg_orders.sql",
+        change_type=FileChangeType.MODIFIED,
+        base_content="SELECT id, status FROM raw_orders WHERE status != 'cancelled';",
+        head_content="SELECT id, status FROM raw_orders WHERE status = 'delivered';",
+    )
+    monkeypatch.setattr(
+        "parallax.core.git.GitResolver.get_changed_sql_files", lambda *args, **kwargs: [cf]
+    )
+    monkeypatch.setenv("INPUT_FAIL_ON", "NEVER")
+    monkeypatch.setenv("INPUT_MANIFEST", str(tmp_path / "non_existent.json"))
+    monkeypatch.setenv("GITHUB_REPOSITORY", "acme/repo")
+    monkeypatch.setenv("PR_NUMBER", "42")
+    monkeypatch.setattr(
+        "parallax.github.action.GitHubActionRunner.post_or_update_pr_comment", lambda *args: True
+    )
+
+    with pytest.raises(SystemExit) as exc:
+        run_action()
+    assert exc.value.code == 0

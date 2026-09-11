@@ -192,3 +192,29 @@ def test_cli_check_writes_output_file(
     assert out_file.is_file()
     content = out_file.read_text(encoding="utf-8")
     assert "<!-- parallax-ci-comment -->" in content
+
+
+def test_cli_report_command(temp_dbt_git_repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.chdir(temp_dbt_git_repo)
+    stg_orders = temp_dbt_git_repo / "models" / "staging" / "stg_orders.sql"
+    stg_orders.write_text(
+        "SELECT id, status FROM raw_orders WHERE status = 'delivered';", encoding="utf-8"
+    )
+
+    out_html = temp_dbt_git_repo / "custom_report.html"
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "report",
+            "--base",
+            "main",
+            "--manifest",
+            "target/manifest.json",
+            "--out",
+            str(out_html),
+        ],
+    )
+    assert result.exit_code == 0
+    assert out_html.is_file()
+    assert "<!DOCTYPE html>" in out_html.read_text(encoding="utf-8")

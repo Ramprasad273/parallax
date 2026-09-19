@@ -11,7 +11,7 @@ Parallax is an open-source, zero-config blast radius and semantic drift CI tool 
 When contributing code to Parallax, keep these four principles in mind:
 
 1. **Zero Warehouse Credentials**: Parallax never connects to live databases, warehouses, or orchestrators. Everything operates on Git diffs, SQL ASTs, and dbt metadata artifacts.
-2. **Sub-Second Performance**: Static analysis and lineage traversals must complete in under 500ms even for projects with 2,000+ models. Avoid heavy I/O or quadratic algorithms.
+2. **Lightweight In-Memory Traversal**: Keep lineage traversals and AST diffing memory-efficient and fast. Avoid unnecessary disk I/O, heavy external dependencies, or quadratic algorithms.
 3. **Zero False-Positive Noise**: If a PR contains cosmetic formatting or comment changes, Parallax must run silently without spamming PR comments.
 4. **Deterministic Synthesis**: Plain-English impact summaries are generated algorithmically. Do not introduce dependencies on external LLMs or non-deterministic APIs.
 

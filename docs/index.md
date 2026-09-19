@@ -45,7 +45,7 @@ Parallax runs during local development or inside your CI pipeline (such as GitHu
 | Tenet | Description |
 | :--- | :--- |
 | **Static Analysis by Design** | Operates strictly on local SQL code and dbt metadata. Requires no database credentials, creates no staging tables, and incurs no cloud warehouse query costs. |
-| **Sub-Second Execution** | In-memory graph resolution and AST traversal typically complete in under 500 milliseconds for projects with thousands of models. |
+| **In-Memory Graph Traversal** | Resolves dependencies and lineage paths entirely in memory using NetworkX, avoiding database roundtrips or query latencies. |
 | **Signal-to-Noise Priority** | Non-semantic changes (such as whitespace alterations, comment edits, or internal alias updates) are recognized as zero-risk, avoiding unnecessary pull request noise. |
 | **Deterministic Rules** | Generates plain-English summaries using rule-based algorithmic synthesis, ensuring consistent and reproducible CI results. |
 

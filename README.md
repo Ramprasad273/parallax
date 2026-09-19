@@ -4,7 +4,6 @@
 [![Release](https://img.shields.io/badge/release-v0.1.0-blue?style=flat-square)](https://github.com/Ramprasad273/parallax/releases)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square)](https://opensource.org/licenses/Apache-2.0)
 [![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue?style=flat-square)](https://www.python.org/)
-[![Check Speed](https://img.shields.io/badge/check_speed-%3C0.5s-brightgreen?style=flat-square)](#the-solution)
 
 > **Zero-Config Blast Radius & Semantic Drift CI for SQL and dbt.**  
 > Catches silent business logic corruption and maps downstream dashboard breakage before your PR is merged.
@@ -29,7 +28,7 @@ Modern analytics engineering teams rely on **SQLFluff** (linters) and **dbt test
 
 ### The Solution
 
-Parallax runs directly in GitHub Actions or your local terminal in **< 0.5 seconds** (for in-memory DAG traversal; total wall time includes Git I/O and SQL parsing). It:
+Parallax runs directly in GitHub Actions or your local terminal with zero warehouse connections. It:
 1. **Parses SQL ASTs:** Compares the Git diff between branches using [`sqlglot`](https://github.com/tobymao/sqlglot) to catch predicate tightening, loosened conditions, dropped columns, and mutated join types.
 2. **Walks the dbt DAG:** Ingests `target/manifest.json` and uses [`networkx`](https://networkx.org/) to trace every downstream staging model, mart, and Looker/Tableau executive exposure.
 3. **Static & In-Memory:** Requires **zero warehouse credentials**, zero staging database spins, and zero query cost.
@@ -231,7 +230,7 @@ ignore_patterns:
 | Tenet | Engineering Implementation |
 | :--- | :--- |
 | **Static Analysis by Design** | Evaluates SQL ASTs and dbt metadata without requiring database credentials, creating staging databases, or incurring cloud query costs. |
-| **Sub-Second Execution** | In-memory NetworkX DAG resolution completes in **< 0.5s** for 2,000+ models (total wall time includes Git I/O and SQL parsing). |
+| **In-Memory Graph Analysis** | Traverses downstream model and exposure dependencies via NetworkX in memory without database roundtrips. |
 | **Signal-to-Noise Priority** | Non-semantic PRs (whitespace, formatting, isolated comment edits) are evaluated as zero-risk, avoiding PR review noise. |
 | **Deterministic Synthesis** | Rule-based algorithmic synthesis generates plain-English summaries without external or nondeterministic LLMs. |
 

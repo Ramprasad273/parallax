@@ -987,8 +987,8 @@
 <td style="text-align: left;">Operates strictly on local SQL code and dbt metadata. Requires no database credentials, creates no staging tables, and incurs no cloud warehouse query costs.</td>
 </tr>
 <tr>
-<td style="text-align: left;"><strong>Sub-Second Execution</strong></td>
-<td style="text-align: left;">In-memory graph resolution and AST traversal typically complete in under 500 milliseconds for projects with thousands of models.</td>
+<td style="text-align: left;"><strong>In-Memory Graph Traversal</strong></td>
+<td style="text-align: left;">Resolves dependencies and lineage paths entirely in memory using NetworkX, avoiding database roundtrips or query latencies.</td>
 </tr>
 <tr>
 <td style="text-align: left;"><strong>Signal-to-Noise Priority</strong></td>

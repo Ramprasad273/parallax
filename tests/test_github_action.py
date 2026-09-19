@@ -100,7 +100,9 @@ def test_update_existing_comment_in_place() -> None:
         assert "/issues/comments/9999" in patch_call.full_url
 
 
-def test_run_action_no_changes(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_run_action_no_changes(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.delenv("GITHUB_EVENT_PATH", raising=False)
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(tmp_path / "summary.md"))
     monkeypatch.setattr(
         "parallax.core.git.GitResolver.get_changed_sql_files", lambda *args, **kwargs: []
     )
@@ -120,6 +122,8 @@ def test_run_action_with_changes_and_comment(
         base_content="SELECT id, status FROM raw_orders WHERE status != 'cancelled';",
         head_content="SELECT id, status FROM raw_orders WHERE status = 'delivered';",
     )
+    monkeypatch.delenv("GITHUB_EVENT_PATH", raising=False)
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(tmp_path / "summary.md"))
     monkeypatch.setattr(
         "parallax.core.git.GitResolver.get_changed_sql_files", lambda *args, **kwargs: [cf]
     )
@@ -134,3 +138,4 @@ def test_run_action_with_changes_and_comment(
     with pytest.raises(SystemExit) as exc:
         run_action()
     assert exc.value.code == 0
+

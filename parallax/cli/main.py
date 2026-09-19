@@ -5,7 +5,7 @@ import sys
 import time
 from pathlib import Path
 
-if sys.platform == "win32":
+if sys.platform == "win32":  # pragma: no cover
     try:
         if hasattr(sys.stdout, "reconfigure"):
             sys.stdout.reconfigure(encoding="utf-8", errors="replace")

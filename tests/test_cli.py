@@ -85,7 +85,8 @@ def test_cli_help() -> None:
     assert "demo" in result.output
 
 
-def test_cli_check_no_changes(temp_dbt_git_repo: Path) -> None:
+def test_cli_check_no_changes(temp_dbt_git_repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.chdir(temp_dbt_git_repo)
     runner = CliRunner()
     result = runner.invoke(
         cli,

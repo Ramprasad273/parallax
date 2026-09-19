@@ -442,7 +442,7 @@ class TerminalFormatter:
         self.console.print(Rule(f" {gate_label} ", style=cfg["rule_style"]))
         self.console.print(
             Padding(
-                Text("github.com/parallax-ci/parallax", style="dim"),
+                Text("github.com/Ramprasad273/parallax", style="dim"),
                 (0, 2),
             )
         )

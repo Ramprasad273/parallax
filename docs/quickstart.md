@@ -21,7 +21,7 @@ pip install parallax-ci
 
 ### Option 3: From Source (Developers)
 ```bash
-git clone https://github.com/parallax-ci/parallax.git
+git clone https://github.com/Ramprasad273/parallax.git
 cd parallax
 uv pip install -e ".[dev]"
 ```

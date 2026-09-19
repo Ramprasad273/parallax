@@ -1,8 +1,8 @@
 site_name: Parallax
 site_description: Zero-Config Blast Radius & Semantic Drift CI for SQL and dbt
 site_author: Parallax Contributors
-repo_url: https://github.com/parallax-ci/parallax
-repo_name: parallax-ci/parallax
+repo_url: https://github.com/Ramprasad273/parallax
+repo_name: Ramprasad273/parallax
 
 theme:
   name: material

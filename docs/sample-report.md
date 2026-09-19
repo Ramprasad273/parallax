@@ -91,7 +91,7 @@ When running `parallax demo` or inspecting a pull request check, Parallax genera
        pending/in-transit/disputed) was intended by business stakeholders.
 
 ─────────────────────────────────────────  CI gate: BLOCK  ─────────────────────────────────────────
-  github.com/parallax-ci/parallax
+  github.com/Ramprasad273/parallax
 ```
 
 ---

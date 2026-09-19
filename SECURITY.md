@@ -8,10 +8,10 @@ The Parallax team and contributors take the security and integrity of Parallax s
 
 Only the latest minor release is actively supported with security patches and bug fixes:
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 0.1.x   | :white_check_mark: |
-| < 0.1.0 | :x:                |
+| Version | Supported |
+| ------- | --------- |
+| 0.1.x   | Yes       |
+| < 0.1.0 | No        |
 
 ---
 
@@ -39,6 +39,6 @@ Please include the following details in your report:
 
 ## GitHub Security Advisories
 
-We also support private vulnerability reporting directly through GitHub Security Advisories on the [parallax-ci/parallax repository](https://github.com/parallax-ci/parallax/security/advisories/new).
+We also support private vulnerability reporting directly through GitHub Security Advisories on the [Ramprasad273/parallax repository](https://github.com/Ramprasad273/parallax/security/advisories/new).
 
 Thank you for helping keep Parallax and the data engineering community secure.

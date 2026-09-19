@@ -1152,13 +1152,13 @@ class HTMLFormatter:
             </div>
             <div class="header-actions">
                 <button type="button" class="btn-action" onclick="copyPrMarkdown(this)" title="Copy PR comment markdown for GitHub or Slack">
-                    <span>📋</span> Copy PR Markdown
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align: -2px; margin-right: 4px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>Copy PR Markdown
                 </button>
                 <button type="button" class="btn-action" onclick="downloadReportJson()" title="Download structured report JSON">
-                    <span>💾</span> Export JSON
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align: -2px; margin-right: 4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Export JSON
                 </button>
                 <button type="button" class="btn-action" onclick="window.print()" title="Print report or save to PDF">
-                    <span>🖨</span> Print / PDF
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align: -2px; margin-right: 4px;"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>Print / PDF
                 </button>
             </div>
             <div class="header-meta">

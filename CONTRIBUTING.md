@@ -24,7 +24,7 @@ Parallax requires **Python 3.10+**.
 ### 1. Clone & Set Up Environment
 
 ```bash
-git clone https://github.com/parallax-ci/parallax.git
+git clone https://github.com/Ramprasad273/parallax.git
 cd parallax
 
 # Using standard venv
@@ -145,5 +145,5 @@ When adding a new diff rule:
 
 ## Community & Questions
 
-- Report bugs or request features via [GitHub Issues](https://github.com/parallax-ci/parallax/issues).
+- Report bugs or request features via [GitHub Issues](https://github.com/Ramprasad273/parallax/issues).
 - For security vulnerabilities, please email `security@parallax-ci.dev` directly rather than opening a public issue.

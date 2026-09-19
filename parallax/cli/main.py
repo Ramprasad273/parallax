@@ -339,9 +339,9 @@ def report(
             click.echo("Could not open browser automatically. Open the file manually.")
 
     if not demo and len(rep.modified_models) == 0:
-        click.echo("ℹ️  Note: 0 modified SQL files detected between Git branches.")
-        click.echo("   Tip: Run with --demo to preview a report with full simulation data:")
-        click.echo(f"   uv run parallax report --demo --out {out}")
+        click.echo("Note: 0 modified SQL files detected between Git branches.")
+        click.echo("Tip: Run with --demo to preview a report with full simulation data:")
+        click.echo(f"   parallax report --demo --out {out}")
 
 
 @cli.command("demo")

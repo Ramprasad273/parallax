@@ -3,7 +3,7 @@ description: "Zero-Config Blast Radius & Semantic Drift CI for SQL and dbt"
 author: "Parallax Contributors"
 branding:
   icon: "git-pull-request"
-  color: "red"
+  color: "blue"
 
 inputs:
   manifest:

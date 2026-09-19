@@ -34,11 +34,11 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/parallax-ci/parallax"
-Documentation = "https://github.com/parallax-ci/parallax#readme"
-"Bug Tracker" = "https://github.com/parallax-ci/parallax/issues"
-"Source Code" = "https://github.com/parallax-ci/parallax"
-Changelog = "https://github.com/parallax-ci/parallax/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/Ramprasad273/parallax"
+Documentation = "https://github.com/Ramprasad273/parallax#readme"
+"Bug Tracker" = "https://github.com/Ramprasad273/parallax/issues"
+"Source Code" = "https://github.com/Ramprasad273/parallax"
+Changelog = "https://github.com/Ramprasad273/parallax/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 dev = [

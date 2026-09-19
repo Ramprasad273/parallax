@@ -1,10 +1,10 @@
 # Parallax
 
-[![CI](https://github.com/parallax-ci/parallax/actions/workflows/ci.yml/badge.svg)](https://github.com/parallax-ci/parallax/actions)
-[![PyPI](https://img.shields.io/pypi/v/parallax-ci.svg)](https://pypi.org/project/parallax-ci/)
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)](https://www.python.org/)
-[![Status](https://img.shields.io/badge/PR_Check_Speed-%3C0.5s-brightgreen)](#performance)
+[![CI](https://img.shields.io/github/actions/workflow/status/Ramprasad273/parallax/ci.yml?branch=main&label=CI&style=flat-square)](https://github.com/Ramprasad273/parallax/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/badge/release-v0.1.0-blue?style=flat-square)](https://github.com/Ramprasad273/parallax/releases)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square)](https://opensource.org/licenses/Apache-2.0)
+[![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue?style=flat-square)](https://www.python.org/)
+[![Check Speed](https://img.shields.io/badge/check_speed-%3C0.5s-brightgreen?style=flat-square)](#the-solution)
 
 > **Zero-Config Blast Radius & Semantic Drift CI for SQL and dbt.**  
 > Catches silent business logic corruption and maps downstream dashboard breakage before your PR is merged.
@@ -129,7 +129,7 @@ uvx parallax-ci demo
        pending/in-transit/disputed) was intended by business stakeholders.
 
 ─────────────────────────────────────────  CI gate: BLOCK  ─────────────────────────────────────────
-  github.com/parallax-ci/parallax
+  github.com/Ramprasad273/parallax
 ```
 
 ---
@@ -165,7 +165,7 @@ jobs:
         run: dbt compile
 
       - name: Run Parallax Blast Radius CI
-        uses: parallax-ci/parallax@v0.1.0  # Or pin to full commit SHA for immutable CI
+        uses: Ramprasad273/parallax@v0.1.0  # Or @main
         with:
           manifest: target/manifest.json
           fail_on: CRITICAL

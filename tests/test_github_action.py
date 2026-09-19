@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from parallax.github.action import GitHubActionRunner
+from parallax.github.action import GitHubActionRunner, run_action
 
 
 def test_get_pr_metadata_from_event(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -98,9 +98,6 @@ def test_update_existing_comment_in_place() -> None:
         patch_call = mock_urlopen.call_args_list[1][0][0]
         assert patch_call.method == "PATCH"
         assert "/issues/comments/9999" in patch_call.full_url
-
-
-from parallax.github.action import run_action
 
 
 def test_run_action_no_changes(monkeypatch: pytest.MonkeyPatch) -> None:

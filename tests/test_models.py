@@ -1,6 +1,6 @@
-from pathlib import Path
-
 """Unit tests for Parallax core models and configuration."""
+
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError

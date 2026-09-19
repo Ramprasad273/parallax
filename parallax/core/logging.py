@@ -1,7 +1,6 @@
 """Modular structured logging system for Parallax."""
 
 import logging
-import sys
 from typing import ClassVar
 
 
@@ -28,11 +27,11 @@ def setup_logging(verbose: bool = False, logger_name: str = "parallax") -> loggi
     logger.setLevel(logging.DEBUG if verbose else logging.INFO)
 
     if not logger.handlers:
-        handler = logging.StreamHandler(sys.stderr)
+        handler = logging.StreamHandler()
         handler.setFormatter(ParallaxLogFormatter())
         logger.addHandler(handler)
 
-    logger.propagate = False
+    logger.propagate = True
     return logger
 
 

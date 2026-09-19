@@ -46,11 +46,18 @@ runs:
     - name: Install Parallax
       shell: bash
       run: |
-        python -m pip install --upgrade --timeout 30 pip
-        if [ -n "${{ inputs.version }}" ]; then
-          pip install --timeout 30 "parallax-ci==${{ inputs.version }}"
+        if command -v uv > /dev/null 2>&1; then
+          if [ -n "${{ inputs.version }}" ]; then
+            uv pip install --system "parallax-ci==${{ inputs.version }}"
+          else
+            uv pip install --system "${{ github.action_path }}"
+          fi
         else
-          pip install --timeout 30 "${{ github.action_path }}"
+          if [ -n "${{ inputs.version }}" ]; then
+            pip install --no-cache-dir "parallax-ci==${{ inputs.version }}"
+          else
+            pip install --no-cache-dir "${{ github.action_path }}"
+          fi
         fi
 
     - name: Run Parallax Check

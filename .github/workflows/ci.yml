@@ -37,14 +37,7 @@ jobs:
 
       - name: Run Test Suite & Coverage Gate
         run: |
-          pytest -v -ra --cov=parallax --cov-report=term-missing --cov-fail-under=80 > test_output.log 2>&1 || {
-            STATUS=$?
-            FAILURES=$(grep -A 20 -E "FAILURES|SHORT TEST SUMMARY|FAILED " test_output.log | tr '\n' ' ' | head -c 500)
-            COV_FAIL=$(grep -E "FAIL Required test coverage|TOTAL" test_output.log || true)
-            echo "::error title=PytestFailure::Exit $STATUS | Failures: $FAILURES | Cov: $COV_FAIL"
-            cat test_output.log
-            exit $STATUS
-          }
+          pytest -v -ra --cov=parallax --cov-report=term-missing --cov-fail-under=80
 
 
       - name: Run Ruff Lint Check

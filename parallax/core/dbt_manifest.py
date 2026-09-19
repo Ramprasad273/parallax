@@ -38,10 +38,11 @@ class DbtManifest:
 
             file_path = data.get("original_file_path", "")
             if file_path:
-                norm = Path(file_path).as_posix()
+                norm = file_path.replace("\\", "/").strip()
                 self._file_to_id[norm] = uid
                 # Also index basename (e.g. stg_orders.sql)
-                self._file_to_id[Path(file_path).name] = uid
+                basename = norm.split("/")[-1]
+                self._file_to_id[basename] = uid
 
     @classmethod
     def from_file(cls, manifest_path: str | Path) -> "DbtManifest":
@@ -83,11 +84,12 @@ class DbtManifest:
 
     def get_model_id_by_path(self, file_path: str) -> str | None:
         """Resolve a file path (e.g. models/staging/stg_orders.sql) to a model unique_id."""
-        norm = Path(file_path).as_posix()
+        norm = file_path.replace("\\", "/").strip()
         if norm in self._file_to_id:
             return self._file_to_id[norm]
-        basename = Path(file_path).name
+        basename = norm.split("/")[-1]
         return self._file_to_id.get(basename)
+
 
     def get_model_id_by_name(self, model_name: str) -> str | None:
         """Resolve a short model name (e.g. stg_orders) to a unique_id."""

@@ -12,6 +12,6 @@ git push -u origin main
 
 Write-Host "Published successfully to $GitHubRepoUrl!" -ForegroundColor Green
 Write-Host "Next steps:" -ForegroundColor Yellow
-Write-Host "1. Tag a release: git tag v1.0.0 && git push origin v1.0.0"
+Write-Host "1. Tag a release: git tag v0.1.0 && git push origin v0.1.0"
 Write-Host "2. Build PyPI wheel: uv build"
 Write-Host "3. Publish to PyPI: twine upload dist/*"

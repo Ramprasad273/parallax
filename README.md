@@ -11,7 +11,7 @@
 
 ---
 
-## 💥 The Acute Problem
+## The Problem
 
 Modern analytics engineering teams rely on **SQLFluff** (linters) and **dbt tests** (`unique`, `not_null`). Both fail silently when query logic shifts subtly:
 
@@ -23,84 +23,118 @@ Modern analytics engineering teams rely on **SQLFluff** (linters) and **dbt test
 
 1. **Linters are blind:** SQLFluff checks indentation, commas, and casing. The SQL syntax is 100% valid.
 2. **dbt tests are blind:** The surviving delivered orders are still unique and non-null. All unit tests pass.
-3. **The Silent Catastrophe:** The original query included orders in `'processing'` and `'in_transit'` (which count toward booked revenue under corporate accounting rules). The new filter silently erased **12% of total pipeline**—wiping out **$3.8M in ARR** from downstream executive dashboards for 3 months before anyone noticed.
+3. **The Silent Regression:** The original query included orders in `'processing'` and `'in_transit'`. The new filter silently dropped them from all downstream models, corrupting downstream marts and executive reporting dashboards while all unit tests remained green.
 
 ---
 
-## 🛡️ The Solution: Parallax
+### The Solution
 
-Parallax runs directly in GitHub Actions or your local terminal in **< 0.5 seconds**. It:
+Parallax runs directly in GitHub Actions or your local terminal in **< 0.5 seconds** (for in-memory DAG traversal; total wall time includes Git I/O and SQL parsing). It:
 1. **Parses SQL ASTs:** Compares the Git diff between branches using [`sqlglot`](https://github.com/tobymao/sqlglot) to catch predicate tightening, loosened conditions, dropped columns, and mutated join types.
 2. **Walks the dbt DAG:** Ingests `target/manifest.json` and uses [`networkx`](https://networkx.org/) to trace every downstream staging model, mart, and Looker/Tableau executive exposure.
-3. **100% Static & In-Memory:** Requires **zero warehouse credentials**, zero staging database spins, and zero query cost.
-4. **Never Spams PRs:** If a PR contains only cosmetic formatting or comment edits, Parallax runs silently with zero false-positive noise.
+3. **Static & In-Memory:** Requires **zero warehouse credentials**, zero staging database spins, and zero query cost.
+4. **Signal-Focused:** If a PR contains only cosmetic formatting or comment edits, Parallax runs silently with zero false-positive review noise.
 
 ---
 
-## ⚡ 10-Second Quickstart
+## Quickstart
 
-Try the built-in horror story simulation with **zero setup**:
+Try the built-in simulation with **zero setup**:
 
 ```bash
+# Using uv (recommended)
+uv run parallax demo
+
+# Or with pip
 pip install parallax-ci
 parallax demo
-```
 
-Or run it instantly without installing via `uvx`:
-```bash
+# Or run instantly without installing via uvx
 uvx parallax-ci demo
 ```
 
-### Visual Terminal Output (`parallax demo` in 11ms):
+### Visual Terminal Output (`parallax demo` in ~11ms):
 ```text
-PARALLAX • Blast Radius & Semantic Drift CI
-Comparing: main...pr/clean-order-filter  |  Duration: 11.15ms
+────────────────────────────  PARALLAX  Blast Radius & Semantic Drift  ─────────────────────────────
+  main  >  pr/clean-order-filter    2026-09-12 15:26 UTC    11.4 ms
 
-┌───────────────────────────── Impact Assessment ─────────────────────────────┐
-│  CRITICAL RISK                                                              │
-│                                                                             │
-│ 🚨 **CRITICAL RISK:** PR tightened filter `NOT status IN ('returned',       │
-│ 'cancelled')` -> `status = 'delivered'` on `stg_orders`. This cascades      │
-│ across **18 downstream models** and impacts **3 Executive Exposures**       │
-│ (`Board Financials Summary`, `Executive ARR Dashboard`, `Sales Commission   │
-│ Sync`).                                                                     │
-└─────────────────────────────────────────────────────────────────────────────┘
+╭─  RISK: CRITICAL  ───────────────────────────────────────────────────────────────────────────────╮
+│  CRITICAL RISK: PR tightened filter `NOT status IN ('returned', 'cancelled')` -> `status =       │
+│  'delivered'` on `stg_orders`. This cascades across 18 downstream models and impacts 3           │
+│  Executive Exposures (`Board Financials Summary`, `Executive ARR Dashboard`, `Sales Commission   │
+│  Sync`).                                                                                         │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
 
-           Blast Radius Metrics            
-┌──────────────────────────────┬──────────┐
-│ Metric                       │ Value    │
-├──────────────────────────────┼──────────┤
-│ Modified Models              │ 1        │
-│ Impacted Downstream Models   │ 18       │
-│ Impacted BI Exposures        │ 3        │
-│ Max Lineage DAG Depth        │ 4 layers │
-│ Breaking Column Mutations    │ 0        │
-└──────────────────────────────┴──────────┘
+╭─ Overview ───────────────────────────────────────────────────────────────────────────────────────╮
+│   Modified models                           1                                                    │
+│   Downstream models impacted               18                                                    │
+│   BI exposures affected                     3                                                    │
+│   Longest lineage path (hops)               4                                                    │
+│   Breaking column references             none                                                    │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
 
-                              AST Semantic Diffs                               
-┌────────────┬──────────┬───────────┬────────────────────┬────────────────────┐
-│ Model      │ Category │ Type      │ Original           │ New / Altered      │
-├────────────┼──────────┼───────────┼────────────────────┼────────────────────┤
-│ stg_orders │ WHERE    │ TIGHTENED │ NOT status IN      │ status =           │
-│            │          │           │ ('returned',       │ 'delivered'        │
-│            │          │           │ 'cancelled')       │                    │
-└────────────┴──────────┴───────────┴────────────────────┴────────────────────┘
+────────────────────────────────────────  Semantic Changes  ────────────────────────────────────────
 
-┌───────────────────── Downstream Lineage & Blast Radius ─────────────────────┐
-│ Modified Models: models/staging/stg_orders.sql                              │
-│ ├── int_customer_orders (layer: intermediate, depth: 1)                     │
-│ ├── int_net_payments (layer: intermediate, depth: 1)                        │
-│ ├── fct_orders (layer: marts, depth: 2)                                     │
-│ ├── rpt_executive_kpis (layer: reporting, depth: 3)                         │
-│ ├──  📊 EXPOSURE: Board Financials Summary  (dashboard)                     │
-│ ├──  📊 EXPOSURE: Executive ARR Dashboard  (dashboard)                      │
-│ └──  📊 EXPOSURE: Sales Commission Sync  (reverse_etl)                      │
-└─────────────────────────────────────────────────────────────────────────────┘
+╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
+│  Model    stg_orders                                                                             │
+│  Scope    WHERE                                                                                  │
+│  Change   TIGHTENED                                                                              │
+│  Before   NOT status IN ('returned', 'cancelled')                                                │
+│  After    status = 'delivered'                                                                   │
+│  Note     Filter tightened from negative exclusion (NOT status IN ('returned', 'cancelled')) to  │
+│           strict match (status = 'delivered'), omitting unhandled categories.                    │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+────────────────────────────────────  Downstream Blast Radius  ─────────────────────────────────────
+
+  Downstream Models
+
+  INTERMEDIATE  4 models  (hop 1)
+    int_customer_orders
+    int_net_payments
+    int_order_items
+    int_subscription_periods
+
+  MARTS  8 models  (hop 2)
+    dim_customers
+    dim_products
+    dim_sales_reps
+    dim_subscriptions
+    fct_churn_daily
+    fct_customer_transactions
+    fct_mrr_monthly
+    fct_orders
+
+  REPORTING  6 models  (hop 3)
+    rpt_cohort_retention
+    rpt_daily_pipeline
+    rpt_executive_kpis
+    rpt_monthly_finance_board
+    rpt_regional_performance
+    rpt_sales_commission_sync
+
+  Impacted BI Exposures
+  Exposure                     Type              Owner                    
+──────────────────────────────────────────────────────────────────────────
+  Board Financials Summary     DASHBOARD         VP Finance               
+  Executive ARR Dashboard      DASHBOARD         Chief Financial Officer  
+  Sales Commission Sync        REVERSE_ETL       Sales Ops                
+
+──────────────────────────────────────  Recommended Actions  ───────────────────────────────────────
+
+   1.  Verify business metrics: Confirm that filter/calculation changes do not unintentionally
+       alter executive metrics on: Board Financials Summary, Executive ARR Dashboard, Sales
+       Commission Sync.
+   2.  Audit dropped records: Confirm whether omitting non-matching statuses (e.g.
+       pending/in-transit/disputed) was intended by business stakeholders.
+
+─────────────────────────────────────────  CI gate: BLOCK  ─────────────────────────────────────────
+  github.com/parallax-ci/parallax
 ```
 
 ---
 
-## 🚀 GitHub Actions Integration
+## GitHub Actions Integration
 
 Drop this 6-line step into your `.github/workflows/dbt_ci.yml` after `dbt compile`:
 
@@ -131,7 +165,7 @@ jobs:
         run: dbt compile
 
       - name: Run Parallax Blast Radius CI
-        uses: parallax-ci/action@v1
+        uses: parallax-ci/parallax@v0.1.0  # Or pin to full commit SHA for immutable CI
         with:
           manifest: target/manifest.json
           fail_on: CRITICAL
@@ -146,7 +180,7 @@ jobs:
 
 ---
 
-## 🛠️ CLI Usage
+## CLI Usage
 
 ```bash
 # Check local working tree or branch diff
@@ -170,7 +204,7 @@ parallax demo
 
 ---
 
-## ⚙️ Configuration (`.parallax.yml`)
+## Configuration (`.parallax.yml`)
 
 Parallax works with zero configuration by default. For custom governance rules, place `.parallax.yml` in your repository root:
 
@@ -192,32 +226,48 @@ ignore_patterns:
   - "models/dev_*"
 ```
 
----
+## Core Tenets & Operating Principles
 
-## 🏛️ Architecture & Guiding Principles
-
-| Principle | Engineering Implementation |
+| Tenet | Engineering Implementation |
 | :--- | :--- |
-| **Zero Warehouse Credentials** | 100% static analysis of ASTs and dbt metadata. Never touches live warehouse credentials. |
-| **Sub-Second Speed** | In-memory NetworkX DAG resolution and SQLGlot AST traversals complete in **< 0.5s** for 2,000+ models. |
-| **Zero Noise** | Non-semantic PRs (whitespace, formatting, isolated docs) produce **0 comments**. |
-| **Deterministic Explainer** | Algorithmic synthesis generates plain-English executive summaries without flaky or costly LLMs. |
+| **Static Analysis by Design** | Evaluates SQL ASTs and dbt metadata without requiring database credentials, creating staging databases, or incurring cloud query costs. |
+| **Sub-Second Execution** | In-memory NetworkX DAG resolution completes in **< 0.5s** for 2,000+ models (total wall time includes Git I/O and SQL parsing). |
+| **Signal-to-Noise Priority** | Non-semantic PRs (whitespace, formatting, isolated comment edits) are evaluated as zero-risk, avoiding PR review noise. |
+| **Deterministic Synthesis** | Rule-based algorithmic synthesis generates plain-English summaries without external or nondeterministic LLMs. |
+
+### Git File Rename Handling
+
+In `v0.1.0`, Parallax invokes Git diff with `--no-renames`. This intentionally treats a file relocation or rename (such as `git mv models/staging/stg_orders.sql models/core/stg_orders.sql`) as a `DROP` of the previous path and an `ADD` of the new path. This conservative design ensures that any downstream models or BI exposures still pointing to the old path are flagged for breaking references. Heuristic rename tracking will be introduced in a future release.
 
 ---
 
-## 🧪 Testing & Quality Standards
+## Disclaimer & Limitations
+
+Parallax performs static syntactic and dependency analysis based on SQL ASTs and dbt metadata. It does not inspect runtime warehouse data rows or validate dynamic query execution plans. Downstream column lineage uses static AST expression trees (powered by SQLGlot) with multi-hop derivation tracing and heuristic fallback; while robust across complex pipelines, it is best-effort static analysis and complements rather than replaces full warehouse execution. As provided under the Apache 2.0 license, this tool is distributed on an "AS IS" basis, without warranties or conditions of any kind. Teams should use Parallax as an automated safety layer alongside automated testing and code review.
+
+---
+
+## Testing & Quality Standards
 
 ```bash
-# Run full test suite (55 unit & integration tests)
-pytest -v --cov=parallax
+# Run full test suite with coverage
+pytest -v --cov=parallax --cov-report=term-missing
 
 # Run static linter & typechecker
 ruff check parallax tests
 mypy parallax tests
 ```
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) for full developer environment setup and dialect contribution guidelines.
+
 ---
 
-## 📄 License
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for detailed release notes.
+
+---
+
+## License
 
 Apache 2.0. Created by the Parallax Open Source Community.

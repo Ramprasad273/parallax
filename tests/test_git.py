@@ -136,3 +136,11 @@ def test_git_error_on_non_git_dir(tmp_path: Path) -> None:
     # rev-parse might find parent git if not isolated, but if we pass an invalid repo:
     with pytest.raises(GitError):
         resolver._run_git(["rev-parse", "--verify", "non_existent_ref_12345"])
+
+
+def test_base_ref_fallback_warning(temp_git_repo: Path, caplog: pytest.LogCaptureFixture) -> None:
+    resolver = GitResolver(temp_git_repo)
+    with caplog.at_level("WARNING"):
+        resolver.get_changed_sql_files(base_ref="non_existent_ref_123", include_working_tree=True)
+    assert "falling back to 'main'" in caplog.text
+

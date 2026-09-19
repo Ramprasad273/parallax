@@ -1,7 +1,10 @@
 """DAG Lineage Graph and Blast Radius Propagation Engine."""
 
+import re
+
 import networkx as nx  # type: ignore[import-untyped]
 
+from parallax.core.column_lineage import ColumnLineageEngine
 from parallax.core.dbt_manifest import DbtManifest
 from parallax.core.models import DownstreamNode, ExposureNode
 
@@ -45,6 +48,7 @@ class LineageGraph:
         self,
         modified_model_ids: list[str],
         dropped_or_modified_columns: dict[str, list[str]] | None = None,
+        dialect: str | None = None,
     ) -> tuple[list[DownstreamNode], list[ExposureNode], int]:
         """
         Calculate all downstream models, exposures, and max DAG depth
@@ -67,6 +71,32 @@ class LineageGraph:
         for cols in dropped_or_modified_columns.values():
             all_dropped_cols.update(cols)
 
+        # Collect model node IDs in downstream blast radius (exclude tests, seeds, snapshots)
+        _NON_MODEL_TYPES = {"exposure", "test", "seed", "snapshot", "metric", "semantic_model"}
+
+        def _is_model_node(nid: str) -> bool:
+            node_t = self.graph.nodes[nid].get("type", "model")
+            if node_t in _NON_MODEL_TYPES:
+                return False
+            # dbt test node IDs are always "test.project.name.hash" — double-check by prefix
+            return not nid.startswith("test.")
+
+        model_node_ids = [
+            nid
+            for nid in all_descendants
+            if self.graph.has_node(nid) and _is_model_node(nid)
+        ]
+
+        # Run multi-hop ColumnLineageEngine across subgraph
+        cl_engine = ColumnLineageEngine(default_dialect=dialect or "postgres")
+        column_impacts_by_id, ast_broken_cols_by_id = cl_engine.trace_subgraph_column_lineage(
+            nodes=self.manifest.nodes,
+            modified_models=modified_model_ids,
+            dropped_or_modified_columns=dropped_or_modified_columns,
+            subgraph_node_ids=model_node_ids,
+            dialect=dialect,
+        )
+
         for node_id in all_descendants:
             if not self.graph.has_node(node_id):
                 continue
@@ -88,22 +118,21 @@ class LineageGraph:
                 exp_node = self.manifest.get_exposure_node(node_id)
                 if exp_node is not None:
                     impacted_exposures.append(exp_node)
-            else:
+            elif _is_model_node(node_id):
                 # Downstream model
                 layer = self.manifest.get_node_layer(node_id)
                 tags = self.manifest.get_node_tags(node_id)
                 file_path = node_data.get("file_path")
 
-                # Column-level break heuristic: check if downstream node references dropped column
-                broken_cols: list[str] = []
+                # Combine AST broken columns with heuristic word-boundary check
+                broken_cols_set = set(ast_broken_cols_by_id.get(node_id, []))
                 if all_dropped_cols:
                     raw_node = self.manifest.nodes.get(node_id, {})
-                    code_text = (
-                        raw_node.get("raw_code") or raw_node.get("compiled_code") or ""
-                    ).lower()
+                    code_text = raw_node.get("raw_code") or raw_node.get("compiled_code") or ""
                     for col in all_dropped_cols:
-                        if col.lower() in code_text:
-                            broken_cols.append(col)
+                        pattern = rf"\b{re.escape(col)}\b"
+                        if re.search(pattern, code_text, re.IGNORECASE):
+                            broken_cols_set.add(col)
 
                 downstream_models.append(
                     DownstreamNode(
@@ -112,7 +141,8 @@ class LineageGraph:
                         layer=layer,
                         file_path=file_path,
                         tags=tags,
-                        broken_columns=broken_cols,
+                        broken_columns=sorted(broken_cols_set),
+                        column_impacts=column_impacts_by_id.get(node_id, []),
                         distance_from_source=min_dist,
                     )
                 )
@@ -122,3 +152,23 @@ class LineageGraph:
         impacted_exposures.sort(key=lambda e: e.name)
 
         return downstream_models, impacted_exposures, max_depth
+
+    def get_subgraph_edges(self, modified_model_ids: list[str]) -> list[tuple[str, str]]:
+        """
+        Extract directed edges (parent_name, child_name) for all nodes within
+        the blast radius of modified_model_ids.
+        """
+        all_nodes: set[str] = set()
+        for mid in modified_model_ids:
+            if self.graph.has_node(mid):
+                all_nodes.add(mid)
+                all_nodes.update(nx.descendants(self.graph, mid))
+
+        edges: list[tuple[str, str]] = []
+        subgraph = self.graph.subgraph(all_nodes)
+        for u, v in subgraph.edges():
+            u_name = self.graph.nodes[u].get("name", u)
+            v_name = self.graph.nodes[v].get("name", v)
+            edges.append((str(u_name), str(v_name)))
+        return edges
+

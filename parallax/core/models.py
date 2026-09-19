@@ -198,6 +198,20 @@ class ExposureNode(BaseModel):
     description: str | None = None
 
 
+class ColumnImpact(BaseModel):
+    """Represents a column in a downstream model affected by an upstream mutation."""
+
+    model_config = ConfigDict(frozen=True)
+
+    model_name: str
+    column_name: str
+    upstream_model: str
+    upstream_column: str
+    is_broken: bool = False
+    lineage_path: list[str] = Field(default_factory=list)
+    expression_summary: str | None = None
+
+
 class DownstreamNode(BaseModel):
     """A dbt model affected by an upstream modification."""
 
@@ -209,6 +223,7 @@ class DownstreamNode(BaseModel):
     file_path: str | None = None
     tags: list[str] = Field(default_factory=list)
     broken_columns: list[str] = Field(default_factory=list)
+    column_impacts: list[ColumnImpact] = Field(default_factory=list)
     distance_from_source: int = 1
 
 
@@ -226,6 +241,8 @@ class BlastRadiusReport(BaseModel):
     plain_english_summary: str = "No semantic changes detected."
     remediation_advice: list[str] = Field(default_factory=list)
     execution_duration_ms: float = 0.0
+    dag_edges: list[tuple[str, str]] = Field(default_factory=list)
+    column_lineage_paths: list[ColumnImpact] = Field(default_factory=list)
 
     @property
     def has_breaking_changes(self) -> bool:

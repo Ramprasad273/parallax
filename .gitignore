@@ -1,4 +1,4 @@
-﻿# Byte-compiled / optimized / DLL files
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *.class
@@ -28,7 +28,35 @@ logs/
 *.swp
 .DS_Store
 
+# Distribution / packaging
 *.egg-info/
 build/
 dist/
+site/
+
+# Parallax generated reports & outputs
+*.html
+!docs/**/*.html
+parallax-report.html
+blast_radius_report.html
+demo_report.html
+real_clinical_report.html
+*.json
+!action.yml
+!mkdocs.yml
+!pyproject.toml
+!package.json
+!tests/fixtures/**/*.json
+
+# Internal planning, notes & scratch
 planning/
+scratch/
+
+# Local lockfiles (libraries rely on pyproject.toml constraints)
+uv.lock
+poetry.lock
+
+# Logs & temp files
+*.log
+*.tmp
+Thumbs.db

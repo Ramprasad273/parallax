@@ -84,7 +84,7 @@ class GitHubActionRunner:
 
         existing_comment_id: int | None = None
         try:
-            with urllib.request.urlopen(req) as resp:
+            with urllib.request.urlopen(req, timeout=30) as resp:
                 comments: list[dict[str, Any]] = json.loads(resp.read().decode("utf-8"))
                 for c in comments:
                     body = c.get("body", "")
@@ -95,7 +95,15 @@ class GitHubActionRunner:
             logger.warning("Failed to list PR comments: %s", e)
 
         # 2. Update existing or create new
-        payload = json.dumps({"body": markdown_content}).encode("utf-8")
+        # Cap markdown length at ~60k to prevent GitHub API 422 errors (max 65,536 chars)
+        comment_body = markdown_content
+        if len(comment_body) > 60000:
+            comment_body = (
+                comment_body[:58000]
+                + "\n\n> **[Note]** Output truncated due to GitHub PR comment size limits (65k chars). "
+                + "See the Step Summary or HTML artifact for the complete report."
+            )
+        payload = json.dumps({"body": comment_body}).encode("utf-8")
 
         if existing_comment_id:
             patch_url = f"{self.api_url}/repos/{repo}/issues/comments/{existing_comment_id}"
@@ -107,7 +115,7 @@ class GitHubActionRunner:
             action = "created new comment"
 
         try:
-            with urllib.request.urlopen(req) as resp:
+            with urllib.request.urlopen(req, timeout=30) as resp:
                 if resp.status in (200, 201):
                     logger.info("Successfully %s on PR #%d.", action, pr_number)
                     return True
@@ -162,6 +170,7 @@ def run_action() -> None:
     # 3. Lineage
     downstream_models: list[DownstreamNode] = []
     impacted_exposures: list[ExposureNode] = []
+    dag_edges: list[tuple[str, str]] = []
     max_depth = 0
     try:
         manifest = DbtManifest.from_file(manifest_path)
@@ -172,10 +181,18 @@ def run_action() -> None:
             or ""
             for cf in changed_files
         ]
+        valid_mod_ids = [m for m in mod_ids if m]
+        for cf in changed_files:
+            uid = manifest.get_model_id_by_path(cf.path) or manifest.get_model_id_by_name(Path(cf.path).stem)
+            m_name = Path(cf.path).stem
+            if uid and m_name in dropped_cols_map:
+                dropped_cols_map[uid] = dropped_cols_map[m_name]
         downstream_models, impacted_exposures, max_depth = lineage.get_downstream_blast_radius(
-            [m for m in mod_ids if m],
+            valid_mod_ids,
             dropped_or_modified_columns=dropped_cols_map,
+            dialect=dialect,
         )
+        dag_edges = lineage.get_subgraph_edges(valid_mod_ids)
     except (ManifestError, OSError, ValueError) as e:
         logger.warning("Manifest parsing error: %s", e)
 
@@ -187,6 +204,7 @@ def run_action() -> None:
         downstream_models=downstream_models,
         impacted_exposures=impacted_exposures,
         max_dag_depth=max_depth,
+        dag_edges=dag_edges,
     )
 
     markdown = MarkdownFormatter.render(report)

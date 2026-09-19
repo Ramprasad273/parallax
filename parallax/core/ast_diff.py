@@ -1,6 +1,6 @@
-from typing import Any
-
 """AST-based SQL semantic diff engine using SQLGlot."""
+
+from typing import Any
 
 import sqlglot
 from sqlglot import exp
@@ -321,27 +321,102 @@ class ASTDiffEngine:
                 return cand
         return None
 
+    @staticmethod
+    def _extract_col_and_num(node: exp.Expression) -> tuple[str, float] | None:
+        """Extract (column_name, float_val) from a binary comparison with a numeric literal."""
+        left = getattr(node, "this", None)
+        right = getattr(node, "expression", None)
+        if isinstance(left, exp.Column) and isinstance(right, exp.Literal) and right.is_number:
+            try:
+                return (left.sql().lower(), float(right.this))
+            except (ValueError, TypeError):
+                return None
+        if isinstance(right, exp.Column) and isinstance(left, exp.Literal) and left.is_number:
+            try:
+                return (right.sql().lower(), float(left.this))
+            except (ValueError, TypeError):
+                return None
+        return None
+
     def _classify_predicate_change(
         self, old_node: exp.Expression, new_node: exp.Expression
     ) -> tuple[PredicateDiffType, str]:
         """
         Classify the semantic nature of a changed predicate
-        (e.g., The $3.8M silent bug: NOT IN -> =).
+        (e.g., negative filter to strict equality: NOT IN -> =).
         """
         old_sql = old_node.sql()
         new_sql = new_node.sql()
 
-        # Check for NOT IN ('returned', 'cancelled') -> status = 'delivered'
+        # Check for NOT IN ('returned', 'cancelled') <-> status = 'delivered'
         is_old_negative = isinstance(old_node, exp.Not) or "NOT IN" in old_sql.upper()
         is_new_positive = isinstance(new_node, (exp.EQ, exp.In)) and not isinstance(
             new_node, exp.Not
         )
+        is_old_positive = isinstance(old_node, (exp.EQ, exp.In)) and not isinstance(
+            old_node, exp.Not
+        )
+        is_new_negative = isinstance(new_node, exp.Not) or "NOT IN" in new_sql.upper()
 
         if is_old_negative and is_new_positive:
             return (
                 PredicateDiffType.TIGHTENED,
                 f"Filter tightened from negative exclusion ({old_sql}) to strict match ({new_sql}), omitting unhandled categories.",
             )
+        if is_old_positive and is_new_negative:
+            return (
+                PredicateDiffType.LOOSENED,
+                f"Filter loosened from strict match ({old_sql}) to negative exclusion ({new_sql}), expanding matched records.",
+            )
+
+        # Check for IN list expansion or contraction
+        if (
+            isinstance(old_node, exp.In)
+            and not isinstance(old_node, exp.Not)
+            and isinstance(new_node, exp.In)
+            and not isinstance(new_node, exp.Not)
+        ):
+            old_items = {e.sql().strip("'\"").lower() for e in getattr(old_node, "expressions", [])}
+            new_items = {e.sql().strip("'\"").lower() for e in getattr(new_node, "expressions", [])}
+            if new_items > old_items:
+                return (
+                    PredicateDiffType.LOOSENED,
+                    f"Filter loosened: allowed set expanded in IN clause ({old_sql} -> {new_sql}).",
+                )
+            if new_items < old_items:
+                return (
+                    PredicateDiffType.TIGHTENED,
+                    f"Filter tightened: allowed set reduced in IN clause ({old_sql} -> {new_sql}).",
+                )
+
+        # Check for comparison threshold changes on numeric literals (e.g. amount > 100 -> amount > 50)
+        old_comp = self._extract_col_and_num(old_node)
+        new_comp = self._extract_col_and_num(new_node)
+        if old_comp and new_comp and old_comp[0] == new_comp[0]:
+            _, old_val = old_comp
+            _, new_val = new_comp
+            if isinstance(old_node, (exp.GT, exp.GTE)) and isinstance(new_node, (exp.GT, exp.GTE)):
+                if new_val < old_val:
+                    return (
+                        PredicateDiffType.LOOSENED,
+                        f"Filter threshold relaxed from {old_sql} to {new_sql}.",
+                    )
+                if new_val > old_val:
+                    return (
+                        PredicateDiffType.TIGHTENED,
+                        f"Filter threshold restricted from {old_sql} to {new_sql}.",
+                    )
+            elif isinstance(old_node, (exp.LT, exp.LTE)) and isinstance(new_node, (exp.LT, exp.LTE)):
+                if new_val > old_val:
+                    return (
+                        PredicateDiffType.LOOSENED,
+                        f"Filter threshold relaxed from {old_sql} to {new_sql}.",
+                    )
+                if new_val < old_val:
+                    return (
+                        PredicateDiffType.TIGHTENED,
+                        f"Filter threshold restricted from {old_sql} to {new_sql}.",
+                    )
 
         # Check for operator mutation
         old_op = type(old_node)
@@ -354,7 +429,7 @@ class ASTDiffEngine:
 
         # General mutation
         return (
-            PredicateDiffType.TIGHTENED,
+            PredicateDiffType.MUTATED_OPERATOR,
             f"Filter condition altered from '{old_sql}' to '{new_sql}'.",
         )
 

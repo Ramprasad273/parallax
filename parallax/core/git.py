@@ -17,6 +17,11 @@ class GitResolver:
 
     def __init__(self, repo_root: str | Path | None = None) -> None:
         self.repo_root = Path(repo_root or ".").resolve()
+        try:
+            top_level = self._run_git(["rev-parse", "--show-toplevel"]).strip()
+            self.git_root = Path(top_level).resolve()
+        except GitError:
+            self.git_root = self.repo_root
 
     def _run_git(self, args: list[str]) -> str:
         """Run a git command safely without shell=True."""
@@ -89,7 +94,9 @@ class GitResolver:
                 try:
                     self._run_git(["rev-parse", "--verify", fallback])
                     resolved_base = fallback
-                    logger.debug(f"Base ref '{base_ref}' not found; falling back to '{fallback}'.")
+                    logger.warning(
+                        "Base ref '%s' not found; falling back to '%s'.", base_ref, fallback
+                    )
                     break
                 except GitError:
                     continue
@@ -171,12 +178,12 @@ class GitResolver:
             if any(fnmatch.fnmatch(norm_path, pat) for pat in ignore_patterns):
                 continue
             seen_paths.add(norm_path)
-            full_path = self.repo_root / norm_path
-            content = (
-                full_path.read_text(encoding="utf-8", errors="replace")
-                if full_path.is_file()
-                else ""
-            )
+            content = ""
+            for root in (self.git_root, self.repo_root):
+                full_path = root / norm_path
+                if full_path.is_file():
+                    content = full_path.read_text(encoding="utf-8", errors="replace")
+                    break
             results.append(
                 ChangedFile(
                     path=norm_path,
@@ -192,7 +199,8 @@ class GitResolver:
         self, path: str, ref: str, from_working_tree: bool
     ) -> str | None:
         if from_working_tree:
-            full_path = self.repo_root / path
-            if full_path.is_file():
-                return full_path.read_text(encoding="utf-8", errors="replace")
+            for root in (self.git_root, self.repo_root):
+                full_path = root / path
+                if full_path.is_file():
+                    return full_path.read_text(encoding="utf-8", errors="replace")
         return self.get_file_content_at_ref(path, ref)

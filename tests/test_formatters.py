@@ -111,3 +111,61 @@ def test_html_formatter_output() -> None:
     assert "Board ARR Summary" in html_out
     assert "fct_orders" in html_out
     assert "order_id" in html_out
+    assert "Critical risk detected upstream of Board ARR Summary." in html_out
+    assert "decision-list" in html_out
+    assert "Filter tightened" in html_out
+    assert "Dropped column" in html_out
+    assert "1 Executive Exposures" in html_out
+    assert "1 downstream models" in html_out
+    assert "selectGraphNode" in html_out
+    assert 'onclick="selectGraphNode(this.dataset.nodeId)"' in html_out
+    assert "Verify status filter with stakeholders." in html_out
+    assert "restricts order states" not in html_out
+    assert "45.2 ms" in html_out
+
+
+def test_html_formatter_with_dag_edges() -> None:
+    report = sample_report().model_copy(
+        update={
+            "dag_edges": [
+                ("stg_orders", "fct_orders"),
+                ("fct_orders", "board_arr_summary"),
+            ]
+        }
+    )
+    html_out = HTMLFormatter.render(report)
+    assert 'data-source="stg_orders" data-target="fct_orders"' in html_out
+    assert 'data-source="fct_orders" data-target="exp_board_arr_summary"' in html_out
+
+
+def test_html_formatter_action_bullets_overflow() -> None:
+    report = sample_report().model_copy(
+        update={
+            "remediation_advice": [
+                "Action 1: Fix something.",
+                "Action 2: Fix something else.",
+                "Action 3: Audit this.",
+                "Action 4: Validate that.",
+                "Action 5: Review final.",
+            ]
+        }
+    )
+    html_out = HTMLFormatter.render(report)
+    assert "+ 2 more actions — see full remediation checklist" in html_out
+
+
+def test_html_formatter_action_buttons_and_payloads() -> None:
+    report = sample_report()
+    html_out = HTMLFormatter.render(report)
+
+    assert "Copy Diff" in html_out
+    assert "btn-copy-diff" in html_out
+    assert "Copy PR Markdown" in html_out
+    assert "Export JSON" in html_out
+    assert "Print / PDF" in html_out
+    assert 'id="parallax-markdown-raw"' in html_out
+    assert 'id="parallax-json-raw"' in html_out
+    assert "copyDiffText" in html_out
+    assert "copyPrMarkdown" in html_out
+    assert "downloadReportJson" in html_out
+

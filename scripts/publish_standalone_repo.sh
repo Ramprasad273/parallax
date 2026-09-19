@@ -16,6 +16,6 @@ git push -u origin main
 
 echo "Published successfully to $REPO_URL!"
 echo "Next steps:"
-echo "1. Tag a release: git tag v1.0.0 && git push origin v1.0.0"
+echo "1. Tag a release: git tag v0.1.0 && git push origin v0.1.0"
 echo "2. Build PyPI wheel: uv build"
 echo "3. Publish to PyPI: twine upload dist/*"

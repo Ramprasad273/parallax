@@ -37,7 +37,25 @@ def test_jinja_sanitizer_incremental() -> None:
     assert "{% if" not in sanitized
 
 
-def test_the_3_8_million_dollar_bug() -> None:
+def test_jinja_sanitizer_set_and_for_loops() -> None:
+    raw_sql = """
+    {% set payment_methods = ['bank_transfer', 'credit_card'] %}
+    SELECT
+        order_id,
+        {% for method in payment_methods %}
+        amount as {{ method }}_amount,
+        {% endfor %}
+        total
+    FROM {{ ref('orders') }}
+    """
+    sanitized = JinjaSanitizer.sanitize(raw_sql)
+    assert "{% set" not in sanitized
+    assert "{% for" not in sanitized
+    assert "{% endfor" not in sanitized
+    assert "FROM orders" in sanitized
+
+
+def test_filter_tightening_not_in_to_equals() -> None:
     engine = ASTDiffEngine(default_dialect="snowflake")
 
     base_sql = """
@@ -171,3 +189,55 @@ def test_group_by_and_distinct_diff() -> None:
     diff = engine.diff_model("fct_orders", "models/fct_orders.sql", base_sql, head_sql)
     assert diff.structural.distinct_altered is True
     assert diff.structural.group_by_altered is True
+
+
+def test_filter_loosening_positive_to_negative() -> None:
+    engine = ASTDiffEngine(default_dialect="snowflake")
+
+    base_sql = "SELECT id, status FROM raw_orders WHERE status = 'delivered';"
+    head_sql = "SELECT id, status FROM raw_orders WHERE status NOT IN ('returned', 'cancelled');"
+
+    diff = engine.diff_model("stg_orders", "models/stg_orders.sql", base_sql, head_sql)
+    assert len(diff.predicates) == 1
+    p = diff.predicates[0]
+    assert p.diff_type == PredicateDiffType.LOOSENED
+    assert "loosened" in p.explanation.lower()
+
+
+def test_filter_loosening_in_expansion() -> None:
+    engine = ASTDiffEngine(default_dialect="snowflake")
+
+    base_sql = "SELECT id, status FROM raw_orders WHERE status IN ('active', 'pending');"
+    head_sql = "SELECT id, status FROM raw_orders WHERE status IN ('active', 'pending', 'review');"
+
+    diff = engine.diff_model("stg_orders", "models/stg_orders.sql", base_sql, head_sql)
+    assert len(diff.predicates) == 1
+    p = diff.predicates[0]
+    assert p.diff_type == PredicateDiffType.LOOSENED
+    assert "expanded" in p.explanation.lower()
+
+
+def test_filter_loosening_numeric_threshold() -> None:
+    engine = ASTDiffEngine(default_dialect="snowflake")
+
+    base_sql = "SELECT id, amount FROM raw_orders WHERE amount > 100;"
+    head_sql = "SELECT id, amount FROM raw_orders WHERE amount > 50;"
+
+    diff = engine.diff_model("stg_orders", "models/stg_orders.sql", base_sql, head_sql)
+    assert len(diff.predicates) == 1
+    p = diff.predicates[0]
+    assert p.diff_type == PredicateDiffType.LOOSENED
+    assert "relaxed" in p.explanation.lower()
+
+
+def test_predicate_general_mutation_fallback() -> None:
+    engine = ASTDiffEngine()
+
+    base_sql = "SELECT id FROM orders WHERE status = 'pending';"
+    head_sql = "SELECT id FROM orders WHERE status = 'shipped';"
+
+    diff = engine.diff_model("fct_orders", "models/fct_orders.sql", base_sql, head_sql)
+    assert len(diff.predicates) == 1
+    assert diff.predicates[0].diff_type == PredicateDiffType.MUTATED_OPERATOR
+
+

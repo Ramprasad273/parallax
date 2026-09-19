@@ -17,10 +17,8 @@ class JinjaSanitizer:
         r"""\{\{\s*source\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\s*\)\s*\}\}""",
         re.IGNORECASE,
     )
-    # Conditional block tags (e.g. {% if is_incremental() %} ... {% endif %})
-    _IF_TAG_PATTERN = re.compile(r"\{%\s*if\s+.*?\s*%\}", re.IGNORECASE)
-    _ELSE_TAG_PATTERN = re.compile(r"\{%\s*else\s*%\}", re.IGNORECASE)
-    _ENDIF_TAG_PATTERN = re.compile(r"\{%\s*endif\s*%\}", re.IGNORECASE)
+    # Control block tags (e.g. {% if is_incremental() %} ... {% endif %}, {% set ... %}, {% for ... %})
+    _BLOCK_TAG_PATTERN = re.compile(r"\{%.*?%\}", re.DOTALL)
     # Catch-all for remaining generic {{ macro(...) }}
     _GENERIC_MACRO_PATTERN = re.compile(r"\{\{\s*([a-zA-Z0-9_\.]+)\s*\(.*?\)\s*\}\}", re.DOTALL)
     _SIMPLE_VAR_PATTERN = re.compile(r"\{\{\s*([a-zA-Z0-9_]+)\s*\}\}")
@@ -45,10 +43,8 @@ class JinjaSanitizer:
         # 4. Replace {{ source('source_name', 'table_name') }} with source_name__table_name
         cleaned = cls._SOURCE_PATTERN.sub(r"\1__\2", cleaned)
 
-        # 5. Strip conditional wrappers while preserving the internal SQL logic
-        cleaned = cls._IF_TAG_PATTERN.sub("", cleaned)
-        cleaned = cls._ELSE_TAG_PATTERN.sub("", cleaned)
-        cleaned = cls._ENDIF_TAG_PATTERN.sub("", cleaned)
+        # 5. Strip block tags ({% ... %}) while preserving internal SQL statements
+        cleaned = cls._BLOCK_TAG_PATTERN.sub("", cleaned)
 
         # 6. Replace remaining macro calls {{ macro(...) }} with an identifier
         cleaned = cls._GENERIC_MACRO_PATTERN.sub(r"\1_macro", cleaned)

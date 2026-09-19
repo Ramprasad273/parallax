@@ -121,3 +121,88 @@ def test_risk_low_for_no_semantic_changes() -> None:
     report = engine.evaluate(["stg_orders"], [ast_diff], [], [], 0)
     assert report.risk_severity == RiskSeverity.LOW
     assert "NO RISK" in report.plain_english_summary
+
+
+def test_risk_high_when_predicate_cascades_to_many_models() -> None:
+    engine = RiskEngine()
+
+    downstream = [
+        DownstreamNode(
+            unique_id=f"model.downstream_{i}",
+            name=f"downstream_{i}",
+            layer=ModelLayer.INTERMEDIATE,
+        )
+        for i in range(6)
+    ]
+    pred = PredicateDiff(
+        clause=PredicateClauseType.WHERE,
+        diff_type=PredicateDiffType.TIGHTENED,
+        old_expression="1=1",
+        new_expression="status = 'active'",
+        explanation="Tightened",
+    )
+    ast_diff = ModelASTDiff(
+        model_name="stg_orders",
+        file_path="models/stg_orders.sql",
+        predicates=[pred],
+    )
+    report = engine.evaluate(["stg_orders"], [ast_diff], downstream, [], 2)
+    assert report.risk_severity == RiskSeverity.HIGH
+    assert "HIGH RISK" in report.plain_english_summary
+
+
+def test_risk_high_when_dropped_columns_without_consumers() -> None:
+    engine = RiskEngine()
+
+    ast_diff = ModelASTDiff(
+        model_name="stg_orders",
+        file_path="models/stg_orders.sql",
+        columns=[
+            ColumnDiff(
+                column_name="legacy_col",
+                diff_type=ColumnDiffType.DROPPED,
+                explanation="Dropped",
+            )
+        ],
+    )
+    report = engine.evaluate(["stg_orders"], [ast_diff], [], [], 0)
+    assert report.risk_severity == RiskSeverity.HIGH
+
+
+def test_risk_medium_when_calculation_altered() -> None:
+    engine = RiskEngine()
+
+    ast_diff = ModelASTDiff(
+        model_name="stg_orders",
+        file_path="models/stg_orders.sql",
+        columns=[
+            ColumnDiff(
+                column_name="amount",
+                diff_type=ColumnDiffType.EXPRESSION_ALTERED,
+                explanation="Altered tax calculation",
+            )
+        ],
+    )
+    report = engine.evaluate(["stg_orders"], [ast_diff], [], [], 0)
+    assert report.risk_severity == RiskSeverity.MEDIUM
+    assert "MEDIUM RISK" in report.plain_english_summary
+
+
+def test_risk_medium_when_column_added() -> None:
+    engine = RiskEngine()
+
+    ast_diff = ModelASTDiff(
+        model_name="stg_orders",
+        file_path="models/stg_orders.sql",
+        columns=[
+            ColumnDiff(
+                column_name="new_col",
+                diff_type=ColumnDiffType.ADDED,
+                explanation="Added new column",
+            )
+        ],
+    )
+    report = engine.evaluate(["stg_orders"], [ast_diff], [], [], 0)
+    assert report.risk_severity == RiskSeverity.MEDIUM
+    assert "MEDIUM RISK" in report.plain_english_summary
+

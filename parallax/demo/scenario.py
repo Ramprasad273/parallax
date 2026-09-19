@@ -1,6 +1,7 @@
-"""Built-in interactive demo: The $3.8M Silent Revenue Bug."""
+"""Built-in interactive demo: Silent Filter Tightening Simulation."""
 
 import time
+from pathlib import Path
 
 from rich.console import Console
 
@@ -8,6 +9,7 @@ from parallax.cli.formatters.terminal import TerminalFormatter
 from parallax.core.ast_diff import ASTDiffEngine
 from parallax.core.dbt_manifest import DbtManifest
 from parallax.core.lineage import LineageGraph
+from parallax.core.models import BlastRadiusReport
 from parallax.core.risk_engine import RiskEngine
 
 
@@ -123,6 +125,52 @@ def build_demo_manifest_data() -> dict:
         },
     }
 
+    # Add SQL code for column-level lineage AST resolution
+    nodes["model.enterprise.stg_orders"]["raw_code"] = """
+    SELECT
+        order_id,
+        customer_id,
+        status,
+        order_total * 0.95 as net_booked_amount,
+        order_date
+    FROM {{ ref('raw_orders') }}
+    WHERE status NOT IN ('returned', 'cancelled');
+    """
+
+    nodes["model.enterprise.int_customer_orders"]["raw_code"] = """
+    SELECT
+        order_id,
+        customer_id,
+        order_date,
+        net_booked_amount
+    FROM {{ ref('stg_orders') }};
+    """
+
+    nodes["model.enterprise.fct_orders"]["raw_code"] = """
+    SELECT
+        order_id,
+        customer_id,
+        order_date as order_placed_date,
+        net_booked_amount * 1.1 as gross_amount
+    FROM {{ ref('int_customer_orders') }};
+    """
+
+    nodes["model.enterprise.rpt_monthly_finance_board"]["raw_code"] = """
+    SELECT
+        order_placed_date,
+        SUM(gross_amount) as total_gross
+    FROM {{ ref('fct_orders') }}
+    GROUP BY 1;
+    """
+
+    nodes["model.enterprise.rpt_executive_kpis"]["raw_code"] = """
+    SELECT
+        order_placed_date as kpi_date,
+        COUNT(order_id) as total_orders
+    FROM {{ ref('fct_orders') }}
+    GROUP BY 1;
+    """
+
     # Link reporting models to exposures in child_map
     child_map["model.enterprise.rpt_executive_kpis"].append(
         "exposure.enterprise.exec_arr_dashboard"
@@ -142,21 +190,11 @@ def build_demo_manifest_data() -> dict:
     }
 
 
-def run_demo(console: Console | None = None) -> None:
-    """Run the packaged $3.8M silent revenue bug simulation."""
-    c = console or Console()
+def create_demo_report() -> BlastRadiusReport:
+    """Creates the simulation BlastRadiusReport for demo or testing."""
     start_time = time.perf_counter()
 
-    c.print(
-        "[bold cyan]===========================================================================[/bold cyan]"
-    )
-    c.print("[bold white] PARALLAX DEMO: The $3.8M Silent Revenue Bug Scenario[/bold white]")
-    c.print("[dim] Simulating an upstream WHERE clause alteration in 'stg_orders.sql'...[/dim]")
-    c.print(
-        "[bold cyan]===========================================================================[/bold cyan]\n"
-    )
-
-    # 1. Base SQL vs Head SQL
+    # 1. Base SQL vs Head SQL: Simulates both filter tightening and dropped column 'order_date'
     base_sql = """
     SELECT
         order_id,
@@ -173,8 +211,7 @@ def run_demo(console: Console | None = None) -> None:
         order_id,
         customer_id,
         status,
-        order_total * 0.95 as net_booked_amount,
-        order_date
+        order_total * 0.95 as net_booked_amount
     FROM {{ ref('raw_orders') }}
     WHERE status = 'delivered';
     """
@@ -189,7 +226,7 @@ def run_demo(console: Console | None = None) -> None:
         dialect="snowflake",
     )
 
-    # 3. In-memory DAG Lineage
+    # 3. In-memory DAG Lineage & Column-Level Lineage Tracing
     manifest_data = build_demo_manifest_data()
     manifest = DbtManifest(
         nodes=manifest_data["nodes"],
@@ -198,22 +235,77 @@ def run_demo(console: Console | None = None) -> None:
         child_map=manifest_data["child_map"],
     )
     lineage = LineageGraph(manifest)
+
+    dropped_or_modified = {}
+    if ast_diff.dropped_columns:
+        dropped_or_modified["model.enterprise.stg_orders"] = ast_diff.dropped_columns
+
     downstream_models, impacted_exposures, max_depth = lineage.get_downstream_blast_radius(
-        modified_model_ids=["model.enterprise.stg_orders"]
+        modified_model_ids=["model.enterprise.stg_orders"],
+        dropped_or_modified_columns=dropped_or_modified,
+        dialect="snowflake",
     )
+    dag_edges = lineage.get_subgraph_edges(modified_model_ids=["model.enterprise.stg_orders"])
 
     # 4. Risk Evaluation
     duration_ms = (time.perf_counter() - start_time) * 1000.0
     risk_engine = RiskEngine(tier_tags=["tier_1", "finance", "executive", "board"])
-    report = risk_engine.evaluate(
+    return risk_engine.evaluate(
         modified_models=["models/staging/stg_orders.sql"],
         ast_diffs=[ast_diff],
         downstream_models=downstream_models,
         impacted_exposures=impacted_exposures,
         max_dag_depth=max_depth,
         execution_duration_ms=duration_ms,
+        dag_edges=dag_edges,
     )
 
-    # 5. Render Rich Output
+
+def run_demo(
+    console: Console | None = None,
+    output_format: str = "terminal",
+    output_file: str | None = None,
+) -> BlastRadiusReport:
+    """Run the packaged filter tightening simulation."""
+    c = console or Console()
+    report = create_demo_report()
+
+    if output_format == "html" or (output_file and output_file.endswith(".html")):
+        from parallax.cli.formatters.html import HTMLFormatter
+
+        html_out = HTMLFormatter.render(report)
+        target = Path(output_file or "blast_radius_report.html")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(html_out, encoding="utf-8")
+        c.print(f"[bold green]Parallax HTML demo report written to: {target.resolve()}[/bold green]")
+        return report
+
+    if output_format == "markdown" or (output_file and output_file.endswith(".md")):
+        from parallax.cli.formatters.markdown import MarkdownFormatter
+
+        md_out = MarkdownFormatter.render(report)
+        if output_file:
+            target = Path(output_file)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(md_out, encoding="utf-8")
+            c.print(f"[bold green]Parallax Markdown demo report written to: {target.resolve()}[/bold green]")
+        else:
+            c.print(md_out)
+        return report
+
+    if output_format == "json" or (output_file and output_file.endswith(".json")):
+        import json
+
+        json_out = json.dumps(report.model_dump(), indent=2)
+        if output_file:
+            target = Path(output_file)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(json_out, encoding="utf-8")
+            c.print(f"[bold green]Parallax JSON demo report written to: {target.resolve()}[/bold green]")
+        else:
+            c.print(json_out)
+        return report
+
     formatter = TerminalFormatter(console=c)
     formatter.render(report, base_ref="main", head_ref="pr/clean-order-filter")
+    return report

@@ -3,6 +3,7 @@
 from parallax.core.models import (
     BlastRadiusReport,
     ColumnDiffType,
+    ColumnImpact,
     DownstreamNode,
     ExposureNode,
     JoinDiffType,
@@ -30,8 +31,10 @@ class RiskEngine:
         impacted_exposures: list[ExposureNode],
         max_dag_depth: int,
         execution_duration_ms: float = 0.0,
+        dag_edges: list[tuple[str, str]] | None = None,
     ) -> BlastRadiusReport:
         """Generate a full BlastRadiusReport with severity and explanation."""
+        edges = dag_edges or []
         has_semantic_changes = any(d.has_semantic_changes for d in ast_diffs)
         if not has_semantic_changes and not downstream_models:
             return BlastRadiusReport(
@@ -41,9 +44,10 @@ class RiskEngine:
                 impacted_exposures=[],
                 max_dag_depth=0,
                 risk_severity=RiskSeverity.LOW,
-                plain_english_summary="✅ **NO RISK:** Purely cosmetic, comments, or non-semantic formatting changes.",
+                plain_english_summary="**NO RISK:** Purely cosmetic, comments, or non-semantic formatting changes.",
                 remediation_advice=[],
                 execution_duration_ms=execution_duration_ms,
+                dag_edges=edges,
             )
 
         severity = self._calculate_severity(ast_diffs, downstream_models, impacted_exposures)
@@ -51,6 +55,11 @@ class RiskEngine:
         remediation = self._generate_remediation(
             severity, ast_diffs, downstream_models, impacted_exposures
         )
+
+        # Collect all column lineage paths across downstream models
+        column_paths: list[ColumnImpact] = []
+        for dm in downstream_models:
+            column_paths.extend(dm.column_impacts)
 
         return BlastRadiusReport(
             modified_models=modified_models,
@@ -62,6 +71,8 @@ class RiskEngine:
             plain_english_summary=summary,
             remediation_advice=remediation,
             execution_duration_ms=execution_duration_ms,
+            dag_edges=edges,
+            column_lineage_paths=column_paths,
         )
 
     def _calculate_severity(
@@ -135,11 +146,11 @@ class RiskEngine:
     ) -> str:
         """Synthesize a high-impact plain-English sentence summarizing the impact."""
         prefix = {
-            RiskSeverity.CRITICAL: "🚨 **CRITICAL RISK:**",
-            RiskSeverity.HIGH: "⚠️ **HIGH RISK:**",
-            RiskSeverity.MEDIUM: "ℹ️ **MEDIUM RISK:**",
-            RiskSeverity.LOW: "✅ **LOW RISK:**",
-        }.get(severity, "ℹ️ **INFO:**")
+            RiskSeverity.CRITICAL: "**CRITICAL RISK:**",
+            RiskSeverity.HIGH: "**HIGH RISK:**",
+            RiskSeverity.MEDIUM: "**MEDIUM RISK:**",
+            RiskSeverity.LOW: "**LOW RISK:**",
+        }.get(severity, "**INFO:**")
 
         # Find the primary mutation
         mutation_desc: list[str] = []

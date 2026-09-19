@@ -67,3 +67,56 @@ def test_blast_radius_traversal() -> None:
     fct = next(m for m in downstream if m.name == "fct_orders")
     assert "order_id" in fct.broken_columns
     assert fct.layer == ModelLayer.MARTS
+
+
+def test_column_heuristic_avoids_substring_false_positives() -> None:
+    """Verifies that dropped column 'id' is NOT flagged in models containing 'order_id'."""
+    nodes = {
+        "model.jaffle_shop.stg_orders": {
+            "name": "stg_orders",
+            "resource_type": "model",
+            "original_file_path": "models/staging/stg_orders.sql",
+        },
+        "model.jaffle_shop.fct_orders": {
+            "name": "fct_orders",
+            "resource_type": "model",
+            "original_file_path": "models/marts/fct_orders.sql",
+            # Contains order_id, customer_id, first_name, identifier, but NOT standalone 'id' or 'name'
+            "raw_code": "SELECT order_id, customer_id, first_name, identifier FROM stg_orders;",
+        },
+        "model.jaffle_shop.dim_customers": {
+            "name": "dim_customers",
+            "resource_type": "model",
+            "original_file_path": "models/marts/dim_customers.sql",
+            # Contains exact standalone 'id' and 'name'
+            "raw_code": "SELECT id, name FROM stg_orders;",
+        },
+    }
+    child_map = {
+        "model.jaffle_shop.stg_orders": [
+            "model.jaffle_shop.fct_orders",
+            "model.jaffle_shop.dim_customers",
+        ],
+        "model.jaffle_shop.fct_orders": [],
+        "model.jaffle_shop.dim_customers": [],
+    }
+
+    manifest = DbtManifest(nodes, {}, {}, child_map)
+    graph = LineageGraph(manifest)
+
+    # stg_orders drops 'id' and 'name'
+    downstream, _, _ = graph.get_downstream_blast_radius(
+        modified_model_ids=["model.jaffle_shop.stg_orders"],
+        dropped_or_modified_columns={"model.jaffle_shop.stg_orders": ["id", "name"]},
+    )
+
+    fct = next(m for m in downstream if m.name == "fct_orders")
+    # Must NOT have false positives
+    assert "id" not in fct.broken_columns
+    assert "name" not in fct.broken_columns
+    assert len(fct.broken_columns) == 0
+
+    dim = next(m for m in downstream if m.name == "dim_customers")
+    # Must match standalone identifiers
+    assert "id" in dim.broken_columns
+    assert "name" in dim.broken_columns

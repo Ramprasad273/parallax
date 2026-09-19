@@ -5,6 +5,7 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
+from parallax.core.logging import logger
 from parallax.core.models import RiskSeverity
 
 
@@ -36,6 +37,7 @@ class ParallaxConfig(BaseModel):
                 with open(target, "r", encoding="utf-8") as f:
                     data = yaml.safe_load(f) or {}
                 return cls(**data)
-            except (yaml.YAMLError, OSError, ValueError):
+            except (yaml.YAMLError, OSError, ValueError) as e:
+                logger.warning("Failed to load configuration from %s: %s. Using defaults.", target, e)
                 return cls()
         return cls()

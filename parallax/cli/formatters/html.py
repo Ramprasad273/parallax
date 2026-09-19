@@ -318,12 +318,13 @@ class HTMLFormatter:
         graph_nodes_dict: dict[str, dict[str, Any]] = {}
         graph_edges_list: list[dict[str, str]] = []
 
-        # Categorize layers
-        root_name = report.modified_models[0].split("/")[-1].replace(".sql", "") if report.modified_models else "stg_orders"
+        # Categorize layers - resolve clean model name cross-platform
+        from pathlib import Path
+        root_name = Path(report.modified_models[0]).stem if report.modified_models else "stg_orders"
         graph_nodes_dict[root_name] = {
             "id": root_name,
             "name": root_name,
-            "layer": "Staging (Root Modified)",
+            "layer": "Root Modified",
             "depth": 0,
             "is_root": True,
             "parents": [],
@@ -441,32 +442,53 @@ class HTMLFormatter:
                     graph_nodes_dict[exp_id]["parents"].append(feeder)
 
         # Compute coordinates for deterministic SVG rendering in 1000px width
-        col_x = {0: 10, 1: 205, 2: 415, 3: 630, 4: 845}
-        col_w = {0: 145, 1: 160, 2: 165, 3: 175, 4: 150}
-        layer_groups = {
-            0: [root_name],
-            1: [m.name for m in report.downstream_models if m.layer == ModelLayer.INTERMEDIATE],
-            2: [m.name for m in report.downstream_models if m.layer == ModelLayer.MARTS],
-            3: [m.name for m in report.downstream_models if m.layer in (ModelLayer.REPORTING, ModelLayer.OTHER)],
-            4: [k for k, v in graph_nodes_dict.items() if v.get("is_exposure")],
-        }
+        raw_groups = [
+            [root_name],
+            [m.name for m in report.downstream_models if m.layer == ModelLayer.INTERMEDIATE and m.name != root_name],
+            [m.name for m in report.downstream_models if m.layer == ModelLayer.MARTS and m.name != root_name],
+            [m.name for m in report.downstream_models if m.layer in (ModelLayer.REPORTING, ModelLayer.OTHER) and m.name != root_name],
+            [k for k, v in graph_nodes_dict.items() if v.get("is_exposure")],
+        ]
+        # Keep only non-empty groups to distribute columns evenly and eliminate wide blank gaps
+        active_groups = [g for g in raw_groups if g]
+        num_cols = len(active_groups) or 1
+        svg_width = 1000
+        padding_x = 35
+        available_width = svg_width - 2 * padding_x
+
+        # Calculate balanced column width and gap
+        if num_cols == 1:
+            col_w_val = 220
+            col_gap = 0
+        elif num_cols == 2:
+            col_w_val = 240
+            col_gap = available_width - 2 * col_w_val
+        elif num_cols == 3:
+            col_w_val = 225
+            col_gap = int((available_width - 3 * col_w_val) / 2)
+        elif num_cols == 4:
+            col_w_val = 190
+            col_gap = int((available_width - 4 * col_w_val) / 3)
+        else:
+            col_w_val = 160
+            col_gap = int((available_width - num_cols * col_w_val) / (num_cols - 1))
 
         node_positions = {}
-        node_height = 32
-        row_gap = 13
-        start_y = 45
+        node_height = 34
+        row_gap = 14
+        start_y = 50
 
-        for col_idx, group in layer_groups.items():
-            cx = col_x.get(col_idx, 10 + col_idx * 200)
-            for i, nid in enumerate(group):
-                ny = start_y + i * (node_height + row_gap)
-                if col_idx == 0:
-                    ny = 200  # vertically center root
-                node_positions[nid] = (cx, ny, col_w.get(col_idx, 160))
-
-        svg_width = 1000
-        max_h = max(len(g) for g in layer_groups.values()) * (node_height + row_gap) + start_y + 40
+        # Calculate max height needed
+        max_h = max(len(g) for g in active_groups) * (node_height + row_gap) + start_y + 40
         svg_height = max(420, max_h)
+
+        for col_idx, group in enumerate(active_groups):
+            cx = padding_x + col_idx * (col_w_val + col_gap)
+            total_col_h = len(group) * node_height + (len(group) - 1) * row_gap
+            col_start_y = max(start_y, (svg_height - total_col_h) // 2)
+            for i, nid in enumerate(group):
+                ny = col_start_y + i * (node_height + row_gap)
+                node_positions[nid] = (cx, ny, col_w_val)
 
         # Render SVG Edges
         svg_edges_html = []
@@ -495,7 +517,10 @@ class HTMLFormatter:
             is_root = bool(nd.get("is_root", False))
             is_exp = bool(nd.get("is_exposure", False))
             raw_name = str(nd.get("name", nid))
-            display_name = raw_name if len(raw_name) <= 22 else raw_name[:19] + "..."
+
+            # Proportional truncation based on column width
+            char_limit = int(nw / 8.5)
+            display_name = raw_name if len(raw_name) <= char_limit else raw_name[:char_limit - 3] + "..."
 
             node_class = "dag-node"
             if is_root:
@@ -512,7 +537,7 @@ class HTMLFormatter:
             svg_nodes_html.append(f"""
             <g id="node-{html.escape(nid)}" class="{node_class}" data-id="{html.escape(nid)}" transform="translate({nx}, {ny})" onclick="selectGraphNode(this.getAttribute('data-id'))">
                 <rect width="{nw}" height="{node_height}" rx="4" />
-                <text x="10" y="20">{html.escape(display_name)}</text>
+                <text x="10" y="21">{html.escape(display_name)}</text>
             </g>
             """)
 

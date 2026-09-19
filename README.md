@@ -8,6 +8,10 @@
 > **Zero-Config Blast Radius & Semantic Drift CI for SQL and dbt.**  
 > Catches silent business logic corruption and maps downstream dashboard breakage before your PR is merged.
 
+<p align="center">
+  <img src="docs/assets/images/parallax-walkthrough.gif" alt="Parallax Walkthrough: Terminal CLI to HTML Report to GitHub Actions CI Gate" width="820">
+</p>
+
 ---
 
 ## The Problem
@@ -33,6 +37,58 @@ Parallax runs directly in GitHub Actions or your local terminal with zero wareho
 2. **Walks the dbt DAG:** Ingests `target/manifest.json` and uses [`networkx`](https://networkx.org/) to trace every downstream staging model, mart, and Looker/Tableau executive exposure.
 3. **Static & In-Memory:** Requires **zero warehouse credentials**, zero staging database spins, and zero query cost.
 4. **Signal-Focused:** If a PR contains only cosmetic formatting or comment edits, Parallax runs silently with zero false-positive review noise.
+
+---
+
+## End-to-End Workflow
+
+Parallax provides automated blast radius defense across every stage of development:
+
+<details open>
+<summary><b>1. Local Pre-Commit Scan &mdash; <code>parallax check</code></b></summary>
+<br>
+
+Run instantly in your local development terminal before opening a pull request. Compares your branch against `main` in milliseconds without touching the data warehouse:
+
+- **Semantic AST Detection:** Catches tightened filters, dropped columns, and altered calculations.
+- **Immediate Terminal Feedback:** Flags `CRITICAL RISK` and lists breaking downstream references before code leaves your machine.
+
+<p align="center">
+  <a href="docs/assets/images/cli-report.png"><img src="docs/assets/images/cli-report.png" alt="Local Terminal CLI Report" width="100%"></a>
+</p>
+
+</details>
+
+<details open>
+<summary><b>2. Interactive Standalone Report &mdash; <code>parallax report</code></b></summary>
+<br>
+
+Generates a zero-dependency, self-contained HTML artifact with browser-based interactive exploration:
+
+- **Deterministic DAG Lineage:** Visualizes the full path from modified upstream models to impacted Looker/Tableau dashboards.
+- **Broken Column Contracts:** Lists exact downstream models that will fail compilation or throw runtime exceptions.
+- **Column-Level Lineage Chains:** Multi-hop provenance tracing for modified metrics.
+
+<p align="center">
+  <a href="docs/assets/images/html-report.png"><img src="docs/assets/images/html-report.png" alt="Interactive HTML Report" width="100%"></a>
+</p>
+
+</details>
+
+<details open>
+<summary><b>3. Automated GitHub Actions CI Gate</b></summary>
+<br>
+
+Runs inside your GitHub Actions pipeline on pull requests with zero warehouse credentials or staging databases:
+
+- **Automated PR Audits:** Posts actionable, structured blast radius summaries directly onto pull requests.
+- **Merge Protection:** Automatically fails status checks (`CI Gate: BLOCK`) on breaking schema drifts or critical exposure regressions.
+
+<p align="center">
+  <a href="docs/assets/images/github-ci-pr.png"><img src="docs/assets/images/github-ci-pr.png" alt="GitHub Actions CI PR Gate" width="100%"></a>
+</p>
+
+</details>
 
 ---
 

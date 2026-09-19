@@ -200,3 +200,20 @@ When running `parallax demo` or inspecting a pull request check, Parallax genera
 ─────────────────────────────────────────  CI gate: BLOCK  ─────────────────────────────────────────
 ```
 - **What you can infer:** Under the configured threshold (`--fail-on CRITICAL`), this pull request will exit with status code `1` and block merge automation until resolved, justified, or signed off by an authorized maintainer.
+
+---
+
+## Visualizing via Interactive HTML & GitHub Actions
+
+In addition to terminal output, Parallax outputs rich interactive standalone HTML artifacts and automated GitHub PR comments:
+
+### Interactive Standalone HTML Report
+Features deterministic SVG node-and-edge lineage graphs, column-level derivation pill chains, and schema contract audit tables:
+
+[![Interactive Standalone HTML Report](assets/images/html-report.png)](assets/images/html-report.png)
+
+### Automated GitHub PR Audit Comment & CI Gate
+Posts structured AST diffs, affected business exposures, and blocks merges automatically on risk breaches:
+
+[![GitHub Actions CI PR Gate](assets/images/github-ci-pr.png)](assets/images/github-ci-pr.png)
+

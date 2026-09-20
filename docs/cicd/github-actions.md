@@ -38,7 +38,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install dbt-snowflake parallax-ci
+          pip install dbt-snowflake git+https://github.com/Ramprasad273/parallax.git
 
       - name: Compile dbt Manifest
         run: dbt compile

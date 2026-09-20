@@ -31,7 +31,7 @@ inputs:
     required: false
     default: ${{ github.token }}
   version:
-    description: "Optional PyPI version to install (e.g. '0.1.0'). If omitted, installs from action repository source."
+    description: "Optional Git release tag or branch to install (e.g. 'v0.1.0'). If omitted, installs from action repository source."
     required: false
     default: ""
 
@@ -48,13 +48,13 @@ runs:
       run: |
         if command -v uv > /dev/null 2>&1; then
           if [ -n "${{ inputs.version }}" ]; then
-            uv pip install --system "parallax-ci==${{ inputs.version }}"
+            uv pip install --system "git+https://github.com/Ramprasad273/parallax.git@${{ inputs.version }}"
           else
             uv pip install --system "${{ github.action_path }}"
           fi
         else
           if [ -n "${{ inputs.version }}" ]; then
-            pip install --no-cache-dir "parallax-ci==${{ inputs.version }}"
+            pip install --no-cache-dir "git+https://github.com/Ramprasad273/parallax.git@${{ inputs.version }}"
           else
             pip install --no-cache-dir "${{ github.action_path }}"
           fi

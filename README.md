@@ -99,15 +99,16 @@ Runs inside your GitHub Actions pipeline on pull requests with zero warehouse cr
 Try the built-in simulation with **zero setup**:
 
 ```bash
-# Using uv (recommended)
-uv run parallax demo
+# Install directly from GitHub
+pip install git+https://github.com/Ramprasad273/parallax.git
 
-# Or with pip
-pip install parallax-ci
+# Or clone and install in editable mode
+git clone https://github.com/Ramprasad273/parallax.git
+cd parallax
+pip install -e .
+
+# Run instant demo
 parallax demo
-
-# Or run instantly without installing via uvx
-uvx parallax-ci demo
 ```
 
 ### Visual Terminal Output (`parallax demo` in ~11ms):

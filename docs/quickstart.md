@@ -6,24 +6,20 @@ Get started with Parallax in under 60 seconds.
 
 ## Installation
 
-### Option 1: Using `uv` (Recommended)
+### Option 1: Install directly from GitHub
 ```bash
-uv pip install parallax-ci
+# Using standard pip
+pip install git+https://github.com/Ramprasad273/parallax.git
 
-# Or run directly without installing:
-uvx parallax-ci demo
+# Or using uv
+uv pip install git+https://github.com/Ramprasad273/parallax.git
 ```
 
-### Option 2: Using standard `pip`
-```bash
-pip install parallax-ci
-```
-
-### Option 3: From Source (Developers)
+### Option 2: Install from Source (Recommended for Contributors)
 ```bash
 git clone https://github.com/Ramprasad273/parallax.git
 cd parallax
-uv pip install -e ".[dev]"
+pip install -e ".[dev]"  # or uv pip install -e ".[dev]"
 ```
 
 ---
@@ -33,14 +29,7 @@ uv pip install -e ".[dev]"
 You can experience the complete Parallax analysis without configuring any repository or manifest:
 
 ```bash
-# If your virtual environment is active, or installed globally:
 parallax demo
-
-# Or with uv:
-uv run parallax demo
-
-# Or without installing anything using uvx:
-uvx parallax-ci demo
 ```
 
 This simulates an upstream SQL filter tightening on `stg_orders.sql` and visualizes:

@@ -843,10 +843,43 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#legal-compliance-notice" class="md-nav__link">
+  <a href="#outbound-network-traffic-inventory" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Legal &amp; Compliance Notice
+        Outbound Network Traffic Inventory
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dependency-license-audit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dependency License Audit
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#trademark-notice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trademark Notice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#legal-disclaimer-limitation-of-liability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Legal Disclaimer &amp; Limitation of Liability
       
     </span>
   </a>
@@ -985,10 +1018,43 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#legal-compliance-notice" class="md-nav__link">
+  <a href="#outbound-network-traffic-inventory" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Legal &amp; Compliance Notice
+        Outbound Network Traffic Inventory
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dependency-license-audit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dependency License Audit
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#trademark-notice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trademark Notice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#legal-disclaimer-limitation-of-liability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Legal Disclaimer &amp; Limitation of Liability
       
     </span>
   </a>
@@ -1055,20 +1121,103 @@
 <li><strong>Human Review:</strong> Analytics engineers and business stakeholders review flagged PRs based on Parallax recommendations.</li>
 </ol>
 <hr />
-<h2 id="legal-compliance-notice">Legal &amp; Compliance Notice<a class="headerlink" href="#legal-compliance-notice" title="Permanent link">&para;</a></h2>
+<hr />
+<h2 id="outbound-network-traffic-inventory">Outbound Network Traffic Inventory<a class="headerlink" href="#outbound-network-traffic-inventory" title="Permanent link">&para;</a></h2>
+<p>Parallax is strictly sandboxed by default:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Execution Context</th>
+<th style="text-align: left;">Permitted Network Calls</th>
+<th style="text-align: left;">Destination</th>
+<th style="text-align: left;">Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>CLI / Local Run</strong></td>
+<td style="text-align: left;"><strong>None (0 requests)</strong></td>
+<td style="text-align: left;">N/A</td>
+<td style="text-align: left;">Strictly local execution in memory</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Pre-commit Hook</strong></td>
+<td style="text-align: left;"><strong>None (0 requests)</strong></td>
+<td style="text-align: left;">N/A</td>
+<td style="text-align: left;">Strictly local execution in memory</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>GitHub Action</strong></td>
+<td style="text-align: left;"><strong>HTTPS (REST API)</strong></td>
+<td style="text-align: left;"><code>api.github.com</code></td>
+<td style="text-align: left;">Posts PR comments using caller's <code>${{ secrets.GITHUB_TOKEN }}</code></td>
+</tr>
+</tbody>
+</table>
+<p>Under no circumstances does Parallax phone home, ping telemetry aggregators, or contact any third-party domain.</p>
+<hr />
+<h2 id="dependency-license-audit">Dependency License Audit<a class="headerlink" href="#dependency-license-audit" title="Permanent link">&para;</a></h2>
+<p>All runtime dependencies of Parallax are distributed under permissive open-source licenses (MIT and BSD-3-Clause). There is zero copyleft (GPL/AGPL) risk:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Dependency</th>
+<th style="text-align: left;">License</th>
+<th style="text-align: left;">Copyleft Risk</th>
+<th style="text-align: left;">Primary Usage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>sqlglot</code></td>
+<td style="text-align: left;">MIT</td>
+<td style="text-align: left;">None</td>
+<td style="text-align: left;">SQL Abstract Syntax Tree parsing and semantic diffing</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>networkx</code></td>
+<td style="text-align: left;">BSD-3-Clause</td>
+<td style="text-align: left;">None</td>
+<td style="text-align: left;">Directed Acyclic Graph (DAG) construction and BFS traversal</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>rich</code></td>
+<td style="text-align: left;">MIT</td>
+<td style="text-align: left;">None</td>
+<td style="text-align: left;">Terminal output formatting and visual styling</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>click</code></td>
+<td style="text-align: left;">BSD-3-Clause</td>
+<td style="text-align: left;">None</td>
+<td style="text-align: left;">Command-line interface definition and argument parsing</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>pydantic</code></td>
+<td style="text-align: left;">MIT</td>
+<td style="text-align: left;">None</td>
+<td style="text-align: left;">Validated immutable data schemas (Pydantic v2)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>pyyaml</code></td>
+<td style="text-align: left;">MIT</td>
+<td style="text-align: left;">None</td>
+<td style="text-align: left;">Parallax configuration file (<code>.parallax.yml</code>) parsing</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="trademark-notice">Trademark Notice<a class="headerlink" href="#trademark-notice" title="Permanent link">&para;</a></h2>
+<p><strong>dbt™</strong> is a registered trademark of dbt Labs, Inc. </p>
+<p>Parallax is an independent open-source project and is not affiliated with, sponsored by, or endorsed by dbt Labs, Inc. Use of the mark "dbt" in this documentation and project is strictly nominative to describe compatibility with the dbt open-source framework and its artifact specifications.</p>
+<hr />
+<h2 id="legal-disclaimer-limitation-of-liability">Legal Disclaimer &amp; Limitation of Liability<a class="headerlink" href="#legal-disclaimer-limitation-of-liability" title="Permanent link">&para;</a></h2>
 <p>Parallax is distributed as open-source software under the <a href="https://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Licensed under the Apache License, Version 2.0 (the "License");
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>you may not use this file except in compliance with the License.
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>You may obtain a copy of the License at
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    http://www.apache.org/licenses/LICENSE-2.0
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>Unless required by applicable law or agreed to in writing, software
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>distributed under the License is distributed on an "AS IS" BASIS,
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>See the License for the specific language governing permissions and
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>limitations under the License.
-</span></code></pre></div>
+<p>In particular, attention is drawn to <strong>Sections 7 and 8</strong> of the Apache 2.0 License:</p>
+<ul>
+<li><strong>Section 7 (Disclaimer of Warranty):</strong> Unless required by applicable law or agreed to in writing, Licensor provides the Work (and each Contributor provides its Contributions) on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</li>
+<li><strong>Section 8 (Limitation of Liability):</strong> In no event and under no legal theory, whether in tort (including negligence), contract, or otherwise, shall any Contributor be liable to you for damages, including any direct, indirect, special, incidental, or consequential damages of any character arising as a result of this License or out of the use or inability to use the Work.</li>
+</ul>
 <p>Parallax provides static diagnostic analysis based on source code and compiled metadata. It does not provide legal, financial, or regulatory compliance verification. Organizations remain responsible for their own data governance policies, schema migrations, and metric validation.</p>
 
 

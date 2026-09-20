@@ -156,13 +156,22 @@ def run_action() -> None:
     ast_diffs: list[ModelASTDiff] = []
     dropped_cols_map: dict[str, list[str]] = {}
     for cf in changed_files:
-        diff = ast_engine.diff_model(
-            model_name=Path(cf.path).stem,
-            file_path=cf.path,
-            base_sql=cf.base_content,
-            head_sql=cf.head_content,
-            dialect=dialect,
-        )
+        model_name = Path(cf.path).stem
+        try:
+            diff = ast_engine.diff_model(
+                model_name=model_name,
+                file_path=cf.path,
+                base_sql=cf.base_content,
+                head_sql=cf.head_content,
+                dialect=dialect,
+            )
+        except Exception as e:  # noqa: BLE001
+            logger.warning(
+                "Unexpected error analyzing %s: %s. Skipping AST diff for this model.",
+                cf.path,
+                e,
+            )
+            diff = ModelASTDiff(model_name=model_name, file_path=cf.path)
         ast_diffs.append(diff)
         if diff.dropped_columns:
             dropped_cols_map[diff.model_name] = diff.dropped_columns
@@ -183,7 +192,9 @@ def run_action() -> None:
         ]
         valid_mod_ids = [m for m in mod_ids if m]
         for cf in changed_files:
-            uid = manifest.get_model_id_by_path(cf.path) or manifest.get_model_id_by_name(Path(cf.path).stem)
+            uid = manifest.get_model_id_by_path(cf.path) or manifest.get_model_id_by_name(
+                Path(cf.path).stem
+            )
             m_name = Path(cf.path).stem
             if uid and m_name in dropped_cols_map:
                 dropped_cols_map[uid] = dropped_cols_map[m_name]

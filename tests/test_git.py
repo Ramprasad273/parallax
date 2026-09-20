@@ -143,4 +143,3 @@ def test_base_ref_fallback_warning(temp_git_repo: Path, caplog: pytest.LogCaptur
     with caplog.at_level("WARNING"):
         resolver.get_changed_sql_files(base_ref="non_existent_ref_123", include_working_tree=True)
     assert "falling back to 'main'" in caplog.text
-

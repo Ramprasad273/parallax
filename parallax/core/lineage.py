@@ -82,9 +82,7 @@ class LineageGraph:
             return not nid.startswith("test.")
 
         model_node_ids = [
-            nid
-            for nid in all_descendants
-            if self.graph.has_node(nid) and _is_model_node(nid)
+            nid for nid in all_descendants if self.graph.has_node(nid) and _is_model_node(nid)
         ]
 
         # Run multi-hop ColumnLineageEngine across subgraph
@@ -130,6 +128,8 @@ class LineageGraph:
                     raw_node = self.manifest.nodes.get(node_id, {})
                     code_text = raw_node.get("raw_code") or raw_node.get("compiled_code") or ""
                     for col in all_dropped_cols:
+                        # Word boundary (\b) is critical: prevents short column names like 'id', 'name', 'status'
+                        # from matching inside longer identifiers like 'customer_id', 'first_name', or 'order_status'.
                         pattern = rf"\b{re.escape(col)}\b"
                         if re.search(pattern, code_text, re.IGNORECASE):
                             broken_cols_set.add(col)
@@ -171,4 +171,3 @@ class LineageGraph:
             v_name = self.graph.nodes[v].get("name", v)
             edges.append((str(u_name), str(v_name)))
         return edges
-

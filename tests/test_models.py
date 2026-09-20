@@ -135,10 +135,11 @@ def test_parallax_config_from_yaml(tmp_path: Path) -> None:
     assert config.tier_tags == ["gold", "executive"]
 
 
-def test_parallax_config_invalid_yaml_warning(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+def test_parallax_config_invalid_yaml_warning(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
     bad_config = tmp_path / "bad.yml"
     bad_config.write_text("invalid: [yaml: :", encoding="utf-8")
     config = ParallaxConfig.load(str(bad_config))
     assert config.dialect == "snowflake"
     assert "Failed to load configuration" in caplog.text
-

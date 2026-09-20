@@ -90,7 +90,6 @@ class DbtManifest:
         basename = norm.split("/")[-1]
         return self._file_to_id.get(basename)
 
-
     def get_model_id_by_name(self, model_name: str) -> str | None:
         """Resolve a short model name (e.g. stg_orders) to a unique_id."""
         return self._name_to_id.get(model_name)

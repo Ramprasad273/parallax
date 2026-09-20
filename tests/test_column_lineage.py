@@ -26,7 +26,9 @@ def test_single_hop_column_derivation() -> None:
 
     assert "model.int_orders" in impacts
     col_impacts = impacts["model.int_orders"]
-    assert any(ci.column_name == "total_amount" and ci.upstream_column == "amount" for ci in col_impacts)
+    assert any(
+        ci.column_name == "total_amount" and ci.upstream_column == "amount" for ci in col_impacts
+    )
     assert "amount" in broken["model.int_orders"]
 
 
@@ -62,7 +64,10 @@ def test_multi_hop_column_propagation() -> None:
     scaled_impact = next((ci for ci in fct_impacts if ci.column_name == "scaled_hr"), None)
     assert scaled_impact is not None
     assert scaled_impact.upstream_column == "heart_rate"
-    assert "int_vitals.avg_heart_rate" in scaled_impact.lineage_path or "scaled_hr" in scaled_impact.lineage_path
+    assert (
+        "int_vitals.avg_heart_rate" in scaled_impact.lineage_path
+        or "scaled_hr" in scaled_impact.lineage_path
+    )
 
 
 def test_where_clause_dependency_detection() -> None:
@@ -114,3 +119,29 @@ def test_malformed_sql_graceful_fallback() -> None:
 
     assert "model.int_broken" in broken
     assert "amount" in broken["model.int_broken"]
+
+
+def test_column_lineage_avoids_substring_false_positives() -> None:
+    engine = ColumnLineageEngine(default_dialect="postgres")
+    nodes = {
+        "model.stg_orders": {
+            "name": "stg_orders",
+            "raw_code": "SELECT id, customer_id, order_status FROM raw.orders",
+        },
+        "model.int_orders": {
+            "name": "int_orders",
+            # Contains customer_id and payment_status, but NOT the standalone column 'id' or 'status'
+            "raw_code": "SELECT customer_id, payment_status FROM {{ ref('stg_orders') }}",
+        },
+    }
+
+    # If 'id' or 'status' were dropped upstream, they should NOT match 'customer_id' or 'payment_status'
+    _, broken = engine.trace_subgraph_column_lineage(
+        nodes=nodes,
+        modified_models=["stg_orders"],
+        dropped_or_modified_columns={"stg_orders": ["id", "status"]},
+        subgraph_node_ids=["model.int_orders"],
+        dialect="postgres",
+    )
+
+    assert "model.int_orders" not in broken or broken["model.int_orders"] == []

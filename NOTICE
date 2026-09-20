@@ -1,0 +1,16 @@
+Parallax
+Copyright 2026 Ram Prasad (Parallax Contributors)
+
+This product includes software developed as part of the Parallax open-source project.
+https://github.com/Ramprasad273/parallax
+
+dbt™ is a registered trademark of dbt Labs, Inc. Parallax is an independent open-source
+project and is not affiliated with, sponsored by, or endorsed by dbt Labs, Inc.
+
+Third-party components used under permissive licenses:
+- SQLGlot (MIT License) - https://github.com/tobymao/sqlglot
+- NetworkX (BSD-3-Clause) - https://networkx.org/
+- Rich (MIT License) - https://github.com/Textualize/rich
+- Click (BSD-3-Clause) - https://click.palletsprojects.com/
+- Pydantic (MIT License) - https://docs.pydantic.dev/
+- PyYAML (MIT License) - https://pyyaml.org/

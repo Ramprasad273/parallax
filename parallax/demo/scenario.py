@@ -277,7 +277,9 @@ def run_demo(
         target = Path(output_file or "blast_radius_report.html")
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(html_out, encoding="utf-8")
-        c.print(f"[bold green]Parallax HTML demo report written to: {target.resolve()}[/bold green]")
+        c.print(
+            f"[bold green]Parallax HTML demo report written to: {target.resolve()}[/bold green]"
+        )
         return report
 
     if output_format == "markdown" or (output_file and output_file.endswith(".md")):
@@ -288,7 +290,9 @@ def run_demo(
             target = Path(output_file)
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(md_out, encoding="utf-8")
-            c.print(f"[bold green]Parallax Markdown demo report written to: {target.resolve()}[/bold green]")
+            c.print(
+                f"[bold green]Parallax Markdown demo report written to: {target.resolve()}[/bold green]"
+            )
         else:
             c.print(md_out)
         return report
@@ -301,7 +305,9 @@ def run_demo(
             target = Path(output_file)
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(json_out, encoding="utf-8")
-            c.print(f"[bold green]Parallax JSON demo report written to: {target.resolve()}[/bold green]")
+            c.print(
+                f"[bold green]Parallax JSON demo report written to: {target.resolve()}[/bold green]"
+            )
         else:
             c.print(json_out)
         return report

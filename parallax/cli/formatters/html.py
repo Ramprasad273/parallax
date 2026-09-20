@@ -48,7 +48,7 @@ class HTMLFormatter:
                         </span>
                         <button type="button" class="btn-copy-diff" onclick="copyDiffText(this)" title="Copy SQL diff snippet">Copy Diff</button>
                     </div>
-                    {f'<p class="evidence-desc">{html.escape(p.explanation)}</p>' if p.explanation else ''}
+                    {f'<p class="evidence-desc">{html.escape(p.explanation)}</p>' if p.explanation else ""}
                     <div class="diff-view">
                         <div class="diff-line diff-del">
                             <span class="diff-prefix">-</span>
@@ -73,7 +73,7 @@ class HTMLFormatter:
                         </span>
                         <button type="button" class="btn-copy-diff" onclick="copyDiffText(this)" title="Copy SQL diff snippet">Copy Diff</button>
                     </div>
-                    {f'<p class="evidence-desc">{html.escape(c.explanation)}</p>' if c.explanation else ''}
+                    {f'<p class="evidence-desc">{html.escape(c.explanation)}</p>' if c.explanation else ""}
                     <div class="diff-view">
                         <div class="diff-line diff-del">
                             <span class="diff-prefix">-</span>
@@ -111,7 +111,9 @@ class HTMLFormatter:
         broken_models = [m for m in report.downstream_models if m.broken_columns]
         broken_column_rows = []
         for bm in broken_models:
-            col_badges = " ".join(f'<code class="badge-broken">{html.escape(c)}</code>' for c in bm.broken_columns)
+            col_badges = " ".join(
+                f'<code class="badge-broken">{html.escape(c)}</code>' for c in bm.broken_columns
+            )
             hop_info = f"hop {bm.distance_from_source}"
             broken_column_rows.append(f"""
             <tr>
@@ -125,11 +127,7 @@ class HTMLFormatter:
 
         # Column-Level Lineage Pill-Chain Traces
         # Prefer per-model column_impacts (authoritative); fall back to top-level paths
-        all_column_impacts = [
-            ci
-            for m in report.downstream_models
-            for ci in m.column_impacts
-        ]
+        all_column_impacts = [ci for m in report.downstream_models for ci in m.column_impacts]
         if not all_column_impacts:
             all_column_impacts = list(report.column_lineage_paths)
 
@@ -146,7 +144,10 @@ class HTMLFormatter:
             if ci.lineage_path and len(ci.lineage_path) >= 2:
                 steps = ci.lineage_path
             else:
-                steps = [f"{ci.upstream_model}.{ci.upstream_column}", f"{ci.model_name}.{ci.column_name}"]
+                steps = [
+                    f"{ci.upstream_model}.{ci.upstream_column}",
+                    f"{ci.model_name}.{ci.column_name}",
+                ]
 
             is_broken = ci.is_broken
             status_cls = "chain-status-broken" if is_broken else "chain-status-ok"
@@ -154,7 +155,7 @@ class HTMLFormatter:
 
             pills_html = []
             for idx, step in enumerate(steps):
-                is_last = (idx == len(steps) - 1)
+                is_last = idx == len(steps) - 1
                 # Color last pill red if broken
                 pill_cls = "chain-pill-broken" if (is_broken and is_last) else "chain-pill"
                 # Color first pill yellow (modified source)
@@ -165,7 +166,11 @@ class HTMLFormatter:
                     pills_html.append('<span class="chain-arrow">&rarr;</span>')
 
             chain_html = "".join(pills_html)
-            expr_note = f'<div class="chain-expr">{html.escape(ci.expression_summary)}</div>' if ci.expression_summary else ""
+            expr_note = (
+                f'<div class="chain-expr">{html.escape(ci.expression_summary)}</div>'
+                if ci.expression_summary
+                else ""
+            )
             column_chain_blocks.append(f"""
             <div class="chain-block">
                 <div class="chain-row">{chain_html}</div>
@@ -173,7 +178,6 @@ class HTMLFormatter:
                 <span class="{status_cls}">{status_txt}</span>
             </div>
             """)
-
 
         # Remediation Actions
         remediation_items = []
@@ -217,7 +221,11 @@ class HTMLFormatter:
                         f"<strong>Dropped column</strong> <code>{html.escape(c.column_name)}</code> on <code>{html.escape(d.model_name)}</code>"
                     )
                 elif c_type == "EXPRESSION_ALTERED":
-                    expr_detail = f": <code>{html.escape(c.new_expression)}</code>" if c.new_expression else ""
+                    expr_detail = (
+                        f": <code>{html.escape(c.new_expression)}</code>"
+                        if c.new_expression
+                        else ""
+                    )
                     finding_bullets.append(
                         f"<strong>Calculation altered</strong> on <code>{html.escape(d.model_name)}</code>: <code>{html.escape(c.column_name)}</code>{expr_detail}"
                     )
@@ -238,20 +246,34 @@ class HTMLFormatter:
 
         if not finding_bullets:
             if report.modified_models:
-                mod_names = ", ".join(f"<code>{html.escape(m.split('/')[-1].replace('.sql', ''))}</code>" for m in report.modified_models[:3])
+                mod_names = ", ".join(
+                    f"<code>{html.escape(m.split('/')[-1].replace('.sql', ''))}</code>"
+                    for m in report.modified_models[:3]
+                )
                 finding_bullets.append(f"<strong>Modified models:</strong> {mod_names}")
-                finding_bullets.append("No breaking or semantic SQL mutations detected (formatting or comments only).")
+                finding_bullets.append(
+                    "No breaking or semantic SQL mutations detected (formatting or comments only)."
+                )
             else:
                 finding_bullets.append("No semantic changes detected across target repository.")
         elif len(finding_bullets) > 3:
             overflow = len(finding_bullets) - 3
-            finding_bullets = finding_bullets[:3] + [f"<em>+ {overflow} additional SQL mutations</em>"]
+            finding_bullets = finding_bullets[:3] + [
+                f"<em>+ {overflow} additional SQL mutations</em>"
+            ]
 
         # 2. Impact Bullets
         impact_bullets: list[str] = []
         if report.impacted_exposures:
-            exp_names = ", ".join(f"<code>{html.escape(e.label or e.name)}</code>" for e in report.impacted_exposures[:3])
-            more_exp = f" (+{len(report.impacted_exposures) - 3} more)" if len(report.impacted_exposures) > 3 else ""
+            exp_names = ", ".join(
+                f"<code>{html.escape(e.label or e.name)}</code>"
+                for e in report.impacted_exposures[:3]
+            )
+            more_exp = (
+                f" (+{len(report.impacted_exposures) - 3} more)"
+                if len(report.impacted_exposures) > 3
+                else ""
+            )
             impact_bullets.append(
                 f"<strong>{len(report.impacted_exposures)} Executive Exposures</strong> affected: {exp_names}{more_exp}"
             )
@@ -259,7 +281,11 @@ class HTMLFormatter:
             impact_bullets.append("<strong>0 Executive Exposures</strong> affected")
 
         if report.downstream_models:
-            depth_str = f" across <strong>{report.max_dag_depth} DAG hops</strong>" if report.max_dag_depth > 0 else ""
+            depth_str = (
+                f" across <strong>{report.max_dag_depth} DAG hops</strong>"
+                if report.max_dag_depth > 0
+                else ""
+            )
             impact_bullets.append(
                 f"<strong>{len(report.downstream_models)} downstream models</strong> impacted{depth_str}"
             )
@@ -272,7 +298,9 @@ class HTMLFormatter:
                 f"<strong style='color: var(--color-critical);'>{broken_count} broken column references</strong> detected downstream"
             )
         elif report.downstream_models:
-            impact_bullets.append("<strong>0 broken schema references</strong> (all contracts intact)")
+            impact_bullets.append(
+                "<strong>0 broken schema references</strong> (all contracts intact)"
+            )
 
         # 3. Action Bullets
         action_bullets: list[str] = []
@@ -283,7 +311,10 @@ class HTMLFormatter:
                 cat = cat.strip()
                 body = body.strip().rstrip(".")
                 if "Verify business metrics" in cat:
-                    cleaned_body = body.replace("Confirm that filter/calculation changes do not unintentionally alter executive metrics on: ", "").strip()
+                    cleaned_body = body.replace(
+                        "Confirm that filter/calculation changes do not unintentionally alter executive metrics on: ",
+                        "",
+                    ).strip()
                     action_bullets.append(
                         f"<strong>Audit executive metrics:</strong> Confirm metric stability on {html.escape(cleaned_body)}"
                     )
@@ -304,10 +335,14 @@ class HTMLFormatter:
                         f"<strong>{html.escape(cat)}:</strong> {html.escape(body)}"
                     )
             else:
-                action_bullets.append(f"<strong>Action:</strong> {html.escape(clean_adv.rstrip('.'))}")
+                action_bullets.append(
+                    f"<strong>Action:</strong> {html.escape(clean_adv.rstrip('.'))}"
+                )
 
         if not action_bullets:
-            action_bullets.append("<strong>No blocking actions:</strong> Safe to proceed with standard CI review and merge.")
+            action_bullets.append(
+                "<strong>No blocking actions:</strong> Safe to proceed with standard CI review and merge."
+            )
         elif len(action_bullets) > 3:
             overflow = len(action_bullets) - 3
             action_bullets = action_bullets[:3] + [
@@ -320,6 +355,7 @@ class HTMLFormatter:
 
         # Categorize layers - resolve clean model name cross-platform
         from pathlib import Path
+
         root_name = Path(report.modified_models[0]).stem if report.modified_models else "stg_orders"
         graph_nodes_dict[root_name] = {
             "id": root_name,
@@ -378,13 +414,23 @@ class HTMLFormatter:
         # Map dependencies according to actual DAG edges or pipeline topology
         if report.dag_edges:
             for u_raw, v_raw in report.dag_edges:
-                actual_u = u_raw if u_raw in graph_nodes_dict else (f"exp_{u_raw}" if f"exp_{u_raw}" in graph_nodes_dict else None)
-                actual_v = v_raw if v_raw in graph_nodes_dict else (f"exp_{v_raw}" if f"exp_{v_raw}" in graph_nodes_dict else None)
+                actual_u = (
+                    u_raw
+                    if u_raw in graph_nodes_dict
+                    else (f"exp_{u_raw}" if f"exp_{u_raw}" in graph_nodes_dict else None)
+                )
+                actual_v = (
+                    v_raw
+                    if v_raw in graph_nodes_dict
+                    else (f"exp_{v_raw}" if f"exp_{v_raw}" in graph_nodes_dict else None)
+                )
                 if (
                     actual_u
                     and actual_v
                     and actual_u != actual_v
-                    and not any(e["from"] == actual_u and e["to"] == actual_v for e in graph_edges_list)
+                    and not any(
+                        e["from"] == actual_u and e["to"] == actual_v for e in graph_edges_list
+                    )
                 ):
                     graph_edges_list.append({"from": actual_u, "to": actual_v})
                     ch_list = graph_nodes_dict[actual_u]["children"]
@@ -394,9 +440,15 @@ class HTMLFormatter:
                     if actual_u not in pr_list:
                         pr_list.append(actual_u)
         else:
-            intermediate_names = [m.name for m in report.downstream_models if m.layer == ModelLayer.INTERMEDIATE]
+            intermediate_names = [
+                m.name for m in report.downstream_models if m.layer == ModelLayer.INTERMEDIATE
+            ]
             marts_names = [m.name for m in report.downstream_models if m.layer == ModelLayer.MARTS]
-            reporting_names = [m.name for m in report.downstream_models if m.layer in (ModelLayer.REPORTING, ModelLayer.OTHER)]
+            reporting_names = [
+                m.name
+                for m in report.downstream_models
+                if m.layer in (ModelLayer.REPORTING, ModelLayer.OTHER)
+            ]
 
             for im in intermediate_names:
                 graph_edges_list.append({"from": root_name, "to": im})
@@ -435,7 +487,11 @@ class HTMLFormatter:
 
             for exp in report.impacted_exposures:
                 exp_id = f"exp_{exp.name}"
-                feeder = reporting_names[0] if reporting_names else (marts_names[0] if marts_names else root_name)
+                feeder = (
+                    reporting_names[0]
+                    if reporting_names
+                    else (marts_names[0] if marts_names else root_name)
+                )
                 if feeder in graph_nodes_dict and exp_id in graph_nodes_dict:
                     graph_edges_list.append({"from": feeder, "to": exp_id})
                     graph_nodes_dict[feeder]["children"].append(exp_id)
@@ -444,9 +500,21 @@ class HTMLFormatter:
         # Compute coordinates for deterministic SVG rendering in 1000px width
         raw_groups = [
             [root_name],
-            [m.name for m in report.downstream_models if m.layer == ModelLayer.INTERMEDIATE and m.name != root_name],
-            [m.name for m in report.downstream_models if m.layer == ModelLayer.MARTS and m.name != root_name],
-            [m.name for m in report.downstream_models if m.layer in (ModelLayer.REPORTING, ModelLayer.OTHER) and m.name != root_name],
+            [
+                m.name
+                for m in report.downstream_models
+                if m.layer == ModelLayer.INTERMEDIATE and m.name != root_name
+            ],
+            [
+                m.name
+                for m in report.downstream_models
+                if m.layer == ModelLayer.MARTS and m.name != root_name
+            ],
+            [
+                m.name
+                for m in report.downstream_models
+                if m.layer in (ModelLayer.REPORTING, ModelLayer.OTHER) and m.name != root_name
+            ],
             [k for k, v in graph_nodes_dict.items() if v.get("is_exposure")],
         ]
         # Keep only non-empty groups to distribute columns evenly and eliminate wide blank gaps
@@ -520,7 +588,9 @@ class HTMLFormatter:
 
             # Proportional truncation based on column width
             char_limit = int(nw / 8.5)
-            display_name = raw_name if len(raw_name) <= char_limit else raw_name[:char_limit - 3] + "..."
+            display_name = (
+                raw_name if len(raw_name) <= char_limit else raw_name[: char_limit - 3] + "..."
+            )
 
             node_class = "dag-node"
             if is_root:
@@ -549,7 +619,9 @@ class HTMLFormatter:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="{html.escape(report.plain_english_summary.replace('**', ''))}">
+    <meta name="description" content="{
+            html.escape(report.plain_english_summary.replace("**", ""))
+        }">
     <title>Parallax Report &mdash; {html.escape(root_name)}</title>
     <style>
         :root {{
@@ -1187,14 +1259,19 @@ class HTMLFormatter:
                 </button>
             </div>
             <div class="header-meta">
-                <span>{html.escape(base_ref)} &rarr; {html.escape(head_ref)} &bull; {len(report.modified_models)} modified &bull; {len(report.downstream_models)} downstream &bull; {report.execution_duration_ms:.1f} ms</span>
+                <span>{html.escape(base_ref)} &rarr; {html.escape(head_ref)} &bull; {
+            len(report.modified_models)
+        } modified &bull; {len(report.downstream_models)} downstream &bull; {
+            report.execution_duration_ms:.1f} ms</span>
             </div>
         </header>
 
         <!-- Level 1: Decision -->
         <section class="decision-block {status_class}">
             <div class="decision-topline">
-                <span class="status-tag {'status-tag-block' if is_blocking else 'status-tag-pass'}">{status_label}</span>
+                <span class="status-tag {
+            "status-tag-block" if is_blocking else "status-tag-pass"
+        }">{status_label}</span>
                 <span class="decision-severity">{severity_label}</span>
             </div>
             <div class="decision-grid">
@@ -1226,7 +1303,8 @@ class HTMLFormatter:
         </section>
 
         <!-- Level 2: Broken Column Schema Contracts -->
-        {f'''
+        {
+            f'''
         <section class="report-section">
             <h2>Broken Column Schema Contracts ({len(broken_models)})</h2>
             <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">
@@ -1247,10 +1325,14 @@ class HTMLFormatter:
                 </tbody>
             </table>
         </section>
-        ''' if broken_column_rows else ""}
+        '''
+            if broken_column_rows
+            else ""
+        }
 
         <!-- Level 2: Multi-Hop Column-Level Lineage Traces (Pill-Chain) -->
-        {f'''
+        {
+            f'''
         <section class="report-section">
             <h2>Column-Level Lineage Traces ({len(all_column_impacts)})</h2>
             <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
@@ -1260,10 +1342,14 @@ class HTMLFormatter:
                 {chr(10).join(column_chain_blocks)}
             </div>
         </section>
-        ''' if column_chain_blocks else ""}
+        '''
+            if column_chain_blocks
+            else ""
+        }
 
         <!-- Level 2: Confirmed Exposures -->
-        {f'''
+        {
+            f'''
         <section class="report-section">
             <h2>Confirmed Downstream Exposures ({len(report.impacted_exposures)})</h2>
             <table class="data-table">
@@ -1280,17 +1366,24 @@ class HTMLFormatter:
                 </tbody>
             </table>
         </section>
-        ''' if exposure_rows else ""}
+        '''
+            if exposure_rows
+            else ""
+        }
 
         <!-- Level 2: Recommended Remediation -->
-        {f'''
+        {
+            f'''
         <section class="report-section">
             <h2>Actionable Investigation Checklist</h2>
             <ol class="remediation-list">
                 {"".join(remediation_items)}
             </ol>
         </section>
-        ''' if remediation_items else ""}
+        '''
+            if remediation_items
+            else ""
+        }
 
         <!-- Level 3: Interactive Lineage DAG Graph -->
         <section class="report-section">
@@ -1300,7 +1393,9 @@ class HTMLFormatter:
             </p>
             <div class="graph-container">
                 <div class="graph-canvas-wrapper">
-                    <svg id="dag-svg" class="dag-svg" width="{svg_width}" height="{svg_height}" viewBox="0 0 {svg_width} {svg_height}">
+                    <svg id="dag-svg" class="dag-svg" width="{svg_width}" height="{
+            svg_height
+        }" viewBox="0 0 {svg_width} {svg_height}">
                         <defs>
                             <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
                                 <path d="M 0 1 L 8 5 L 0 9 z" fill="#94a3b8" />
@@ -1326,17 +1421,23 @@ class HTMLFormatter:
                 <div id="inspector-drawer" class="graph-inspector">
                     <div class="inspector-col">
                         <span class="inspector-label">Selected Node</span>
-                        <span id="insp-name" class="inspector-val mono bold">{html.escape(root_name)}</span>
+                        <span id="insp-name" class="inspector-val mono bold">{
+            html.escape(root_name)
+        }</span>
                         <div id="insp-meta" class="inspector-meta-row" style="margin-top: 4px; font-size: 12px; color: var(--text-body); line-height: 1.5;">
                             <div><strong style="color: var(--text-muted);">Layer:</strong> Staging (Root Modified)</div>
-                            <div><strong style="color: var(--text-muted);">File:</strong> <span class="mono">models/staging/{html.escape(root_name)}.sql</span></div>
+                            <div><strong style="color: var(--text-muted);">File:</strong> <span class="mono">models/staging/{
+            html.escape(root_name)
+        }.sql</span></div>
                             <div><strong style="color: var(--text-muted);">Status:</strong> <span style="color: var(--color-critical); font-weight: 600;">Root cause &bull; Modified model</span></div>
                         </div>
                     </div>
                     <div class="inspector-col">
                         <span class="inspector-label">Complete End-to-End Lineage Trace</span>
                         <div id="insp-path-trail" class="path-trail" style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 4px;">
-                            <span class="trail-step step-current" style="background: #2563eb; color: #fff; font-weight: 700; padding: 2px 7px; border-radius: 3px; font-size: 11px; font-family: var(--font-mono);">{html.escape(root_name)}</span>
+                            <span class="trail-step step-current" style="background: #2563eb; color: #fff; font-weight: 700; padding: 2px 7px; border-radius: 3px; font-size: 11px; font-family: var(--font-mono);">{
+            html.escape(root_name)
+        }</span>
                         </div>
                         <div style="margin-top: 10px;">
                             <span class="inspector-label">Direct Lineage Connections</span>
@@ -1594,7 +1695,9 @@ class HTMLFormatter:
         }});
     </script>
     <!-- Hidden Raw Payload for Client Actions -->
-    <textarea id="parallax-markdown-raw" style="display:none;" readonly>{html.escape(pr_markdown_str)}</textarea>
+    <textarea id="parallax-markdown-raw" style="display:none;" readonly>{
+            html.escape(pr_markdown_str)
+        }</textarea>
     <script id="parallax-json-raw" type="application/json">{report_json_str}</script>
 </body>
 </html>

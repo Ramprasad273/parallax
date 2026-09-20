@@ -8,12 +8,23 @@ Parallax is an open-source, zero-config blast radius and semantic drift CI tool 
 
 ## Core Architectural Principles
 
-When contributing code to Parallax, keep these four principles in mind:
+When contributing code to Parallax, keep these core principles in mind:
 
 1. **Zero Warehouse Credentials**: Parallax never connects to live databases, warehouses, or orchestrators. Everything operates on Git diffs, SQL ASTs, and dbt metadata artifacts.
 2. **Lightweight In-Memory Traversal**: Keep lineage traversals and AST diffing memory-efficient and fast. Avoid unnecessary disk I/O, heavy external dependencies, or quadratic algorithms.
 3. **Zero False-Positive Noise**: If a PR contains cosmetic formatting or comment changes, Parallax must run silently without spamming PR comments.
 4. **Deterministic Synthesis**: Plain-English impact summaries are generated algorithmically. Do not introduce dependencies on external LLMs or non-deterministic APIs.
+5. **Zero-Telemetry Guarantee**: Parallax collects zero telemetry, metrics, or usage tracking. Any pull request that introduces phone-home beacons, external analytics SDKs, or background telemetry pings will be rejected immediately.
+6. **Zero CI Crash Guarantee**: Parallax must never crash a user's CI pipeline due to an unparseable vendor SQL dialect, Jinja fragment, or unusual AST node. All parsing and analysis errors must degrade gracefully to non-blocking diagnostic warnings.
+
+---
+
+## Developer Certificate of Origin (DCO) & Intellectual Property
+
+By contributing to Parallax, you assert that:
+- The contribution was created in whole or in part by you, and you have the right to submit it under the Apache License, Version 2.0; or
+- The contribution is based upon previous work that, to the best of your knowledge, is covered under an appropriate open-source license and you have the right under that license to submit that work with modifications; and
+- You understand and agree that this project and the contribution are public, that a record of the contribution (including all personal information you submit with it, including your sign-off) is maintained indefinitely and may be redistributed consistent with this project or the open-source license(s) involved.
 
 ---
 

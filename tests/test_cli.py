@@ -222,7 +222,9 @@ def test_cli_report_command(temp_dbt_git_repo: Path, monkeypatch: pytest.MonkeyP
     assert "<!DOCTYPE html>" in out_html.read_text(encoding="utf-8")
 
 
-def test_cli_report_command_with_config(temp_dbt_git_repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_cli_report_command_with_config(
+    temp_dbt_git_repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.chdir(temp_dbt_git_repo)
     stg_orders = temp_dbt_git_repo / "models" / "staging" / "stg_orders.sql"
     stg_orders.write_text(
@@ -264,15 +266,21 @@ def test_cli_report_git_error(monkeypatch: pytest.MonkeyPatch) -> None:
     assert result.exit_code == 1
 
 
-def test_cli_report_with_dropped_column(temp_dbt_git_repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_cli_report_with_dropped_column(
+    temp_dbt_git_repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.chdir(temp_dbt_git_repo)
     stg_orders = temp_dbt_git_repo / "models" / "staging" / "stg_orders.sql"
-    stg_orders.write_text("SELECT id FROM raw_orders WHERE status != 'cancelled';", encoding="utf-8")
+    stg_orders.write_text(
+        "SELECT id FROM raw_orders WHERE status != 'cancelled';", encoding="utf-8"
+    )
 
     # Add raw_code with dropped 'status' column to fct_orders in manifest
     manifest_path = temp_dbt_git_repo / "target" / "manifest.json"
     manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
-    manifest_data["nodes"]["model.jaffle_shop.fct_orders"]["raw_code"] = "SELECT id, status FROM {{ ref('stg_orders') }};"
+    manifest_data["nodes"]["model.jaffle_shop.fct_orders"]["raw_code"] = (
+        "SELECT id, status FROM {{ ref('stg_orders') }};"
+    )
     manifest_path.write_text(json.dumps(manifest_data), encoding="utf-8")
 
     out_html = temp_dbt_git_repo / "dropped_col_report.html"
@@ -293,5 +301,3 @@ def test_cli_report_with_dropped_column(temp_dbt_git_repo: Path, monkeypatch: py
     assert out_html.is_file()
     html_content = out_html.read_text(encoding="utf-8")
     assert "broken column reference" in html_content
-
-

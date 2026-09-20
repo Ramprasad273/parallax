@@ -205,4 +205,3 @@ def test_risk_medium_when_column_added() -> None:
     report = engine.evaluate(["stg_orders"], [ast_diff], [], [], 0)
     assert report.risk_severity == RiskSeverity.MEDIUM
     assert "MEDIUM RISK" in report.plain_english_summary
-

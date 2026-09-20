@@ -168,4 +168,3 @@ def test_html_formatter_action_buttons_and_payloads() -> None:
     assert "copyDiffText" in html_out
     assert "copyPrMarkdown" in html_out
     assert "downloadReportJson" in html_out
-

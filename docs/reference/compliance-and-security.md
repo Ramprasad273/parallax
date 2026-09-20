@@ -46,22 +46,52 @@ Parallax is most effective when integrated into a layered quality assurance stra
 
 ---
 
-## Legal & Compliance Notice
+---
+
+## Outbound Network Traffic Inventory
+
+Parallax is strictly sandboxed by default:
+
+| Execution Context | Permitted Network Calls | Destination | Purpose |
+| :--- | :--- | :--- | :--- |
+| **CLI / Local Run** | **None (0 requests)** | N/A | Strictly local execution in memory |
+| **Pre-commit Hook** | **None (0 requests)** | N/A | Strictly local execution in memory |
+| **GitHub Action** | **HTTPS (REST API)** | `api.github.com` | Posts PR comments using caller's `${{ secrets.GITHUB_TOKEN }}` |
+
+Under no circumstances does Parallax phone home, ping telemetry aggregators, or contact any third-party domain.
+
+---
+
+## Dependency License Audit
+
+All runtime dependencies of Parallax are distributed under permissive open-source licenses (MIT and BSD-3-Clause). There is zero copyleft (GPL/AGPL) risk:
+
+| Dependency | License | Copyleft Risk | Primary Usage |
+| :--- | :--- | :--- | :--- |
+| `sqlglot` | MIT | None | SQL Abstract Syntax Tree parsing and semantic diffing |
+| `networkx` | BSD-3-Clause | None | Directed Acyclic Graph (DAG) construction and BFS traversal |
+| `rich` | MIT | None | Terminal output formatting and visual styling |
+| `click` | BSD-3-Clause | None | Command-line interface definition and argument parsing |
+| `pydantic` | MIT | None | Validated immutable data schemas (Pydantic v2) |
+| `pyyaml` | MIT | None | Parallax configuration file (`.parallax.yml`) parsing |
+
+---
+
+## Trademark Notice
+
+**dbt™** is a registered trademark of dbt Labs, Inc. 
+
+Parallax is an independent open-source project and is not affiliated with, sponsored by, or endorsed by dbt Labs, Inc. Use of the mark "dbt" in this documentation and project is strictly nominative to describe compatibility with the dbt open-source framework and its artifact specifications.
+
+---
+
+## Legal Disclaimer & Limitation of Liability
 
 Parallax is distributed as open-source software under the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
 
-```text
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+In particular, attention is drawn to **Sections 7 and 8** of the Apache 2.0 License:
 
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-```
+- **Section 7 (Disclaimer of Warranty):** Unless required by applicable law or agreed to in writing, Licensor provides the Work (and each Contributor provides its Contributions) on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- **Section 8 (Limitation of Liability):** In no event and under no legal theory, whether in tort (including negligence), contract, or otherwise, shall any Contributor be liable to you for damages, including any direct, indirect, special, incidental, or consequential damages of any character arising as a result of this License or out of the use or inability to use the Work.
 
 Parallax provides static diagnostic analysis based on source code and compiled metadata. It does not provide legal, financial, or regulatory compliance verification. Organizations remain responsible for their own data governance policies, schema migrations, and metric validation.

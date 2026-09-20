@@ -167,9 +167,7 @@ class TerminalFormatter:
         self.console.print(meta_line)
         self.console.print()
 
-    def _render_risk_banner(
-        self, report: BlastRadiusReport, cfg: dict[str, str]
-    ) -> None:
+    def _render_risk_banner(self, report: BlastRadiusReport, cfg: dict[str, str]) -> None:
         """Dominant panel — the first thing a reviewer reads."""
         label = cfg["label"]
         bar_style = cfg["bar_style"]
@@ -245,19 +243,44 @@ class TerminalFormatter:
         Semantic changes — the most diagnostic section.
         Each change is a bordered panel so expressions never truncate.
         """
-        all_rows = [
-            (d.model_name, p.clause.value, p.diff_type.value, p.old_expression or "-", p.new_expression or "-", p.explanation)
-            for d in report.ast_diffs
-            for p in d.predicates
-        ] + [
-            (d.model_name, "COLUMN", c.diff_type.value, c.old_expression or "-", c.new_expression or c.column_name, c.explanation)
-            for d in report.ast_diffs
-            for c in d.columns
-        ] + [
-            (d.model_name, "JOIN", j.diff_type.value, j.old_join_type or "-", j.new_join_type or j.table_name, j.explanation)
-            for d in report.ast_diffs
-            for j in d.structural.join_diffs
-        ]
+        all_rows = (
+            [
+                (
+                    d.model_name,
+                    p.clause.value,
+                    p.diff_type.value,
+                    p.old_expression or "-",
+                    p.new_expression or "-",
+                    p.explanation,
+                )
+                for d in report.ast_diffs
+                for p in d.predicates
+            ]
+            + [
+                (
+                    d.model_name,
+                    "COLUMN",
+                    c.diff_type.value,
+                    c.old_expression or "-",
+                    c.new_expression or c.column_name,
+                    c.explanation,
+                )
+                for d in report.ast_diffs
+                for c in d.columns
+            ]
+            + [
+                (
+                    d.model_name,
+                    "JOIN",
+                    j.diff_type.value,
+                    j.old_join_type or "-",
+                    j.new_join_type or j.table_name,
+                    j.explanation,
+                )
+                for d in report.ast_diffs
+                for j in d.structural.join_diffs
+            ]
+        )
 
         if not all_rows:
             return
@@ -328,7 +351,9 @@ class TerminalFormatter:
             hop = models[0].distance_from_source
             layer_header = Text()
             layer_header.append(f"  {layer.value.upper()}", style=f"bold {color}")
-            layer_header.append(f"  {len(models)} model{'s' if len(models) > 1 else ''}", style="dim")
+            layer_header.append(
+                f"  {len(models)} model{'s' if len(models) > 1 else ''}", style="dim"
+            )
             layer_header.append(f"  (hop {hop})", style="dim")
             self.console.print(layer_header)
 
@@ -417,7 +442,6 @@ class TerminalFormatter:
 
         self.console.print(tbl)
         self.console.print()
-
 
     def _render_remediation(self, report: BlastRadiusReport) -> None:
         """Numbered action items inside a panel — consistent indent on wrap."""

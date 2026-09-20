@@ -38,6 +38,8 @@ class ParallaxConfig(BaseModel):
                     data = yaml.safe_load(f) or {}
                 return cls(**data)
             except (yaml.YAMLError, OSError, ValueError) as e:
-                logger.warning("Failed to load configuration from %s: %s. Using defaults.", target, e)
+                logger.warning(
+                    "Failed to load configuration from %s: %s. Using defaults.", target, e
+                )
                 return cls()
         return cls()

@@ -112,6 +112,8 @@ Runs inside your GitHub Actions pipeline on pull requests with zero warehouse cr
 Parallax is open-source software licensed under the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0). 
 
 > **Important Notice:** Parallax performs static syntactic and structural analysis based on SQL ASTs and dbt metadata artifacts. It does not inspect runtime warehouse data rows or validate dynamic query execution plans. As provided under the Apache 2.0 license, this tool is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND. Teams should use Parallax as an automated safety layer alongside comprehensive code review and automated integration testing.
+>
+> **Trademark Notice:** dbt™ is a registered trademark of dbt Labs, Inc. Parallax is an independent open-source project and is not affiliated with, sponsored by, or endorsed by dbt Labs, Inc.
 
 ---
 

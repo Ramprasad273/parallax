@@ -117,13 +117,21 @@ def check(
 
     for cf in changed_files:
         model_name = Path(cf.path).stem
-        diff = ast_engine.diff_model(
-            model_name=model_name,
-            file_path=cf.path,
-            base_sql=cf.base_content,
-            head_sql=cf.head_content,
-            dialect=active_dialect,
-        )
+        try:
+            diff = ast_engine.diff_model(
+                model_name=model_name,
+                file_path=cf.path,
+                base_sql=cf.base_content,
+                head_sql=cf.head_content,
+                dialect=active_dialect,
+            )
+        except Exception as e:  # noqa: BLE001
+            logger.warning(
+                "Unexpected error analyzing %s: %s. Skipping AST diff for this model.",
+                cf.path,
+                e,
+            )
+            diff = ModelASTDiff(model_name=model_name, file_path=cf.path)
         ast_diffs.append(diff)
         diff_by_path[cf.path] = diff
 
@@ -227,8 +235,16 @@ def check(
 @click.option("--head", "-h", default=None, help="Git head ref.")
 @click.option("--dialect", "-d", default=None, help="SQL dialect.")
 @click.option("--out", "-o", default="parallax-report.html", help="HTML report output path.")
-@click.option("--demo", is_flag=True, default=False, help="Generate report from built-in simulation scenario.")
-@click.option("--open", "open_browser", is_flag=True, default=False, help="Open the HTML report in your browser after generation.")
+@click.option(
+    "--demo", is_flag=True, default=False, help="Generate report from built-in simulation scenario."
+)
+@click.option(
+    "--open",
+    "open_browser",
+    is_flag=True,
+    default=False,
+    help="Open the HTML report in your browser after generation.",
+)
 @click.option("--config", "-c", default=None, help="Path to .parallax.yml config file.")
 @click.option("--git-root", default=None, help="Path to the git repository root (defaults to CWD).")
 def report(
@@ -272,13 +288,22 @@ def report(
         ast_diffs: list[ModelASTDiff] = []
         diff_by_path: dict[str, ModelASTDiff] = {}
         for cf in changed_files:
-            diff = ast_engine.diff_model(
-                model_name=Path(cf.path).stem,
-                file_path=cf.path,
-                base_sql=cf.base_content,
-                head_sql=cf.head_content,
-                dialect=active_dialect,
-            )
+            model_name = Path(cf.path).stem
+            try:
+                diff = ast_engine.diff_model(
+                    model_name=model_name,
+                    file_path=cf.path,
+                    base_sql=cf.base_content,
+                    head_sql=cf.head_content,
+                    dialect=active_dialect,
+                )
+            except Exception as e:  # noqa: BLE001
+                logger.warning(
+                    "Unexpected error analyzing %s: %s. Skipping AST diff for this model.",
+                    cf.path,
+                    e,
+                )
+                diff = ModelASTDiff(model_name=model_name, file_path=cf.path)
             ast_diffs.append(diff)
             diff_by_path[cf.path] = diff
 
@@ -292,9 +317,9 @@ def report(
             mod_ids: list[str] = []
             dropped_by_id: dict[str, list[str]] = {}
             for cf in changed_files:
-                uid = dbt_manifest.get_model_id_by_path(cf.path) or dbt_manifest.get_model_id_by_name(
-                    Path(cf.path).stem
-                )
+                uid = dbt_manifest.get_model_id_by_path(
+                    cf.path
+                ) or dbt_manifest.get_model_id_by_name(Path(cf.path).stem)
                 if uid:
                     mod_ids.append(uid)
                     m_diff = diff_by_path.get(cf.path)
@@ -334,6 +359,7 @@ def report(
     if open_browser:
         try:
             import webbrowser
+
             webbrowser.open(out_path.resolve().as_uri())
         except Exception:  # noqa: BLE001
             click.echo("Could not open browser automatically. Open the file manually.")
@@ -353,7 +379,9 @@ def report(
     default="terminal",
     help="Output format (terminal, markdown, json, html).",
 )
-@click.option("--output", "--out", "-o", "output_file", default=None, help="File path to write report output.")
+@click.option(
+    "--output", "--out", "-o", "output_file", default=None, help="File path to write report output."
+)
 def demo(output_format: str, output_file: str | None) -> None:
     """Run an instant in-memory simulation of silent filter tightening and downstream blast radius."""
     from parallax.demo.scenario import run_demo

@@ -1,5 +1,9 @@
 """Unit tests for Jinja sanitization and AST semantic diffing."""
 
+from typing import Any
+
+import pytest
+
 from parallax.core.ast_diff import ASTDiffEngine
 from parallax.core.jinja import JinjaSanitizer
 from parallax.core.models import (
@@ -241,3 +245,46 @@ def test_predicate_general_mutation_fallback() -> None:
     assert diff.predicates[0].diff_type == PredicateDiffType.MUTATED_OPERATOR
 
 
+def test_diff_model_unparseable_head_sql_graceful() -> None:
+    engine = ASTDiffEngine()
+
+    base_sql = "SELECT id, customer_id, amount FROM orders WHERE status = 'active';"
+    # Truly unparseable SQL across snowflake, duckdb, postgres, ansi
+    head_sql = "SELECT %%% INVALID %%% SYNTAX %%% FROM {[[[ UNCLOSED"
+
+    diff = engine.diff_model("stg_orders", "models/stg_orders.sql", base_sql, head_sql)
+
+    # Must NOT crash, and must NOT falsely report that all columns were dropped
+    assert diff.model_name == "stg_orders"
+    assert diff.dropped_columns == []
+    assert diff.columns == []
+
+
+def test_or_condition_predicate_classification() -> None:
+    engine = ASTDiffEngine()
+
+    base_sql = "SELECT id, region, tier FROM customers WHERE (region = 'US' AND tier = 1) OR region = 'EU';"
+    head_sql = "SELECT id, region, tier FROM customers WHERE (region = 'APAC' AND tier = 1) OR region = 'EU';"
+
+    diff = engine.diff_model("dim_customers", "models/dim_customers.sql", base_sql, head_sql)
+
+    assert len(diff.predicates) >= 1
+    # Compound OR changes must be safely flagged as MUTATED_OPERATOR rather than dropped or missed
+    assert any(p.diff_type == PredicateDiffType.MUTATED_OPERATOR for p in diff.predicates)
+
+
+def test_diff_model_top_level_exception_guard(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = ASTDiffEngine()
+
+    def _broken_diff_predicates(*args: Any, **kwargs: Any) -> list[Any]:
+        raise RuntimeError("Simulated internal AST parser error")
+
+    monkeypatch.setattr(engine, "_diff_predicates", _broken_diff_predicates)
+
+    base_sql = "SELECT id FROM orders WHERE amount > 10;"
+    head_sql = "SELECT id FROM orders WHERE amount > 20;"
+
+    # Should catch the RuntimeError and return a fallback ModelASTDiff without crashing
+    diff = engine.diff_model("orders", "models/orders.sql", base_sql, head_sql)
+    assert diff.model_name == "orders"
+    assert diff.predicates == []

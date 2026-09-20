@@ -138,4 +138,3 @@ def test_run_action_with_changes_and_comment(
     with pytest.raises(SystemExit) as exc:
         run_action()
     assert exc.value.code == 0
-

@@ -139,12 +139,15 @@ class ColumnLineageEngine:
                                         d_col_lower = d_col.lower()
                                         s_name_lower = s_name.lower()
                                         s_source_lower = (s_source or "").lower()
-                                        if (
+                                        source_matches = (
+                                            not s_source_lower or s_source_lower == mod_cand_lower
+                                        )
+                                        col_matches = (
                                             s_name_lower == d_col_lower
                                             or s_name_lower == f"{mod_cand_lower}.{d_col_lower}"
-                                            or (s_source_lower == mod_cand_lower and s_name_lower.endswith(d_col_lower))
                                             or s_name_lower.endswith(f".{d_col_lower}")
-                                        ):
+                                        )
+                                        if source_matches and col_matches:
                                             is_broken = True
                                             matched_upstream_col = d_col
                                             matched_upstream_mod = mod_cand
@@ -195,10 +198,14 @@ class ColumnLineageEngine:
             if all_dropped_cols:
                 for col in all_dropped_cols:
                     if col not in broken_cols:
+                        # Word boundary (\b) is critical: prevents short column names like 'id', 'name', 'status'
+                        # from matching inside longer identifiers like 'customer_id', 'first_name', or 'order_status'.
                         pattern = rf"\b{re.escape(col)}\b"
                         if re.search(pattern, sql, re.IGNORECASE):
                             broken_cols.add(col)
-                            if not any(imp.upstream_column.lower() == col.lower() for imp in impacts):
+                            if not any(
+                                imp.upstream_column.lower() == col.lower() for imp in impacts
+                            ):
                                 impacts.append(
                                     ColumnImpact(
                                         model_name=model_name,

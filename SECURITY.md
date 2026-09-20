@@ -37,6 +37,17 @@ Please include the following details in your report:
 
 ---
 
+## Privacy & Zero Data Collection
+
+Parallax is architected from the ground up to respect user privacy and adhere to strict enterprise data boundaries:
+
+- **Zero Telemetry:** Parallax collects absolutely zero telemetry, tracking events, user metrics, or usage statistics.
+- **No Third-Party Analytics:** Parallax contains no embedded analytics engines, pingbacks, or third-party monitoring SDKs.
+- **Strict Network Boundary:** When running in CLI or local mode, Parallax makes zero outbound network requests. When running as a GitHub Action, the sole outbound network connection is to `api.github.com` strictly using the caller's repository-scoped `GITHUB_TOKEN` to post pull request review comments.
+- **No Data Retention:** Parallax processes your SQL models and dbt manifests purely in memory; no code or metadata is ever transmitted or stored outside your CI/CD runner.
+
+---
+
 ## GitHub Security Advisories
 
 We also support private vulnerability reporting directly through GitHub Security Advisories on the [Ramprasad273/parallax repository](https://github.com/Ramprasad273/parallax/security/advisories/new).

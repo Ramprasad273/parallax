@@ -62,100 +62,139 @@ class ASTDiffEngine:
     ) -> ModelASTDiff:
         """
         Compare Base and Head SQL for a model and return structured semantic diffs.
+        Guaranteed to degrade gracefully without raising uncaught exceptions (zero CI crash).
         """
-        active_dialect = dialect or self.default_dialect
+        try:
+            active_dialect = dialect or self.default_dialect
 
-        base_tree = self.parse_sql(base_sql or "", dialect=active_dialect)
-        head_tree = self.parse_sql(head_sql or "", dialect=active_dialect)
+            has_base_sql = bool(base_sql and base_sql.strip())
+            has_head_sql = bool(head_sql and head_sql.strip())
 
-        predicates: list[PredicateDiff] = []
-        columns: list[ColumnDiff] = []
-        join_diffs: list[JoinDiff] = []
-        group_by_altered = False
-        distinct_altered = False
+            base_tree = (
+                self.parse_sql(base_sql or "", dialect=active_dialect) if has_base_sql else None
+            )
+            head_tree = (
+                self.parse_sql(head_sql or "", dialect=active_dialect) if has_head_sql else None
+            )
 
-        # Case 1: Newly added file
-        if base_tree is None and head_tree is not None:
-            for col in self._extract_columns(head_tree):
-                columns.append(
-                    ColumnDiff(
-                        column_name=col["name"],
-                        diff_type=ColumnDiffType.ADDED,
-                        new_expression=col["expr"],
-                        explanation=f"New column '{col['name']}' introduced.",
+            predicates: list[PredicateDiff] = []
+            columns: list[ColumnDiff] = []
+            join_diffs: list[JoinDiff] = []
+            group_by_altered = False
+            distinct_altered = False
+
+            # Case 1: Truly newly added file
+            if not has_base_sql and has_head_sql:
+                if head_tree is not None:
+                    for col in self._extract_columns(head_tree):
+                        columns.append(
+                            ColumnDiff(
+                                column_name=col["name"],
+                                diff_type=ColumnDiffType.ADDED,
+                                new_expression=col["expr"],
+                                explanation=f"New column '{col['name']}' introduced.",
+                            )
+                        )
+                    for pred in self._extract_where_predicates(head_tree):
+                        predicates.append(
+                            PredicateDiff(
+                                clause=PredicateClauseType.WHERE,
+                                diff_type=PredicateDiffType.ADDED,
+                                new_expression=pred,
+                                explanation="New WHERE predicate introduced in new model.",
+                            )
+                        )
+                return ModelASTDiff(
+                    model_name=model_name,
+                    file_path=file_path,
+                    predicates=predicates,
+                    columns=columns,
+                )
+
+            # Case 2: Truly deleted file
+            if has_base_sql and not has_head_sql:
+                if base_tree is not None:
+                    for col in self._extract_columns(base_tree):
+                        columns.append(
+                            ColumnDiff(
+                                column_name=col["name"],
+                                diff_type=ColumnDiffType.DROPPED,
+                                old_expression=col["expr"],
+                                explanation=f"Column '{col['name']}' dropped due to model deletion.",
+                            )
+                        )
+                return ModelASTDiff(
+                    model_name=model_name,
+                    file_path=file_path,
+                    columns=columns,
+                )
+
+            # Case 3: Both queries exist
+            if base_tree is not None and head_tree is not None:
+                # 1. Compare Predicates (WHERE and HAVING)
+                predicates.extend(
+                    self._diff_predicates(
+                        base_tree, head_tree, exp.Where, PredicateClauseType.WHERE
                     )
                 )
-            for pred in self._extract_where_predicates(head_tree):
-                predicates.append(
-                    PredicateDiff(
-                        clause=PredicateClauseType.WHERE,
-                        diff_type=PredicateDiffType.ADDED,
-                        new_expression=pred,
-                        explanation="New WHERE predicate introduced in new model.",
+                predicates.extend(
+                    self._diff_predicates(
+                        base_tree, head_tree, exp.Having, PredicateClauseType.HAVING
                     )
                 )
+
+                # 2. Compare Projected Columns
+                columns.extend(self._diff_columns(base_tree, head_tree))
+
+                # 3. Compare Joins
+                join_diffs.extend(self._diff_joins(base_tree, head_tree))
+
+                # 4. Compare GROUP BY & DISTINCT
+                base_group = [e.sql() for e in base_tree.find_all(exp.Group)]
+                head_group = [e.sql() for e in head_tree.find_all(exp.Group)]
+                group_by_altered = base_group != head_group
+
+                base_distinct = bool(base_tree.find(exp.Distinct))
+                head_distinct = bool(head_tree.find(exp.Distinct))
+                distinct_altered = base_distinct != head_distinct
+            elif has_base_sql and has_head_sql:
+                # One or both trees could not be parsed into AST.
+                # Graceful degradation: do NOT report false dropped columns or crash.
+                logger.warning(
+                    "Could not generate AST for model '%s' (%s) [base_parsed=%s, head_parsed=%s]. Skipping AST diff.",
+                    model_name,
+                    file_path,
+                    base_tree is not None,
+                    head_tree is not None,
+                )
+
+            structural = StructuralDiff(
+                join_diffs=join_diffs,
+                group_by_altered=group_by_altered,
+                distinct_altered=distinct_altered,
+            )
+
             return ModelASTDiff(
                 model_name=model_name,
                 file_path=file_path,
                 predicates=predicates,
                 columns=columns,
+                structural=structural,
             )
-
-        # Case 2: Deleted file
-        if base_tree is not None and head_tree is None:
-            for col in self._extract_columns(base_tree):
-                columns.append(
-                    ColumnDiff(
-                        column_name=col["name"],
-                        diff_type=ColumnDiffType.DROPPED,
-                        old_expression=col["expr"],
-                        explanation=f"Column '{col['name']}' dropped due to model deletion.",
-                    )
-                )
+        except Exception as err:  # noqa: BLE001
+            logger.warning(
+                "Unexpected error computing AST diff for model '%s' (%s): %s. Falling back to non-blocking empty diff.",
+                model_name,
+                file_path,
+                err,
+            )
             return ModelASTDiff(
                 model_name=model_name,
                 file_path=file_path,
-                columns=columns,
+                predicates=[],
+                columns=[],
+                structural=StructuralDiff(),
             )
-
-        # Case 3: Both queries exist -> detailed AST semantic diff
-        if base_tree is not None and head_tree is not None:
-            # 1. Compare Predicates (WHERE and HAVING)
-            predicates.extend(
-                self._diff_predicates(base_tree, head_tree, exp.Where, PredicateClauseType.WHERE)
-            )
-            predicates.extend(
-                self._diff_predicates(base_tree, head_tree, exp.Having, PredicateClauseType.HAVING)
-            )
-
-            # 2. Compare Projected Columns
-            columns.extend(self._diff_columns(base_tree, head_tree))
-
-            # 3. Compare Joins
-            join_diffs.extend(self._diff_joins(base_tree, head_tree))
-
-            # 4. Compare GROUP BY & DISTINCT
-            base_group = [e.sql() for e in base_tree.find_all(exp.Group)]
-            head_group = [e.sql() for e in head_tree.find_all(exp.Group)]
-            group_by_altered = base_group != head_group
-
-            base_distinct = bool(base_tree.find(exp.Distinct))
-            head_distinct = bool(head_tree.find(exp.Distinct))
-            distinct_altered = base_distinct != head_distinct
-
-        structural = StructuralDiff(
-            join_diffs=join_diffs,
-            group_by_altered=group_by_altered,
-            distinct_altered=distinct_altered,
-        )
-
-        return ModelASTDiff(
-            model_name=model_name,
-            file_path=file_path,
-            predicates=predicates,
-            columns=columns,
-            structural=structural,
-        )
 
     def _extract_columns(self, tree: exp.Expression) -> list[dict[str, str]]:
         """Extract projected column names and expressions from outermost SELECT."""
@@ -218,7 +257,18 @@ class ASTDiffEngine:
         return diffs
 
     def _decompose_predicates(self, clause_node: exp.Expression | None) -> list[exp.Expression]:
-        """Flatten nested boolean AND conjuncts into a flat list of conditions."""
+        """
+        Flatten nested boolean AND conjuncts into a flat list of conditions.
+
+        Design note on OR-conditions:
+        Arbitrary boolean algebra decomposition (e.g. converting full Disjunctive Normal Form
+        or proving semantic containment across mixed AND/OR expressions) is an NP-hard problem
+        that requires heavy SMT solvers (like Z3). For deterministic sub-second CI execution,
+        Parallax decomposes top-level `AND` conjuncts while treating `exp.Or` subtrees as
+        atomic expressions. If an OR condition is modified, it is classified conservatively as
+        `MUTATED_OPERATOR` (or `DROPPED`/`TIGHTENED`), alerting reviewers to the change without
+        risking nondeterministic solver timeouts.
+        """
         if not clause_node:
             return []
         inner = clause_node.this if hasattr(clause_node, "this") else clause_node
@@ -406,7 +456,9 @@ class ASTDiffEngine:
                         PredicateDiffType.TIGHTENED,
                         f"Filter threshold restricted from {old_sql} to {new_sql}.",
                     )
-            elif isinstance(old_node, (exp.LT, exp.LTE)) and isinstance(new_node, (exp.LT, exp.LTE)):
+            elif isinstance(old_node, (exp.LT, exp.LTE)) and isinstance(
+                new_node, (exp.LT, exp.LTE)
+            ):
                 if new_val > old_val:
                     return (
                         PredicateDiffType.LOOSENED,

@@ -43,7 +43,9 @@ class MarkdownFormatter:
 
         if broken_count > 0:
             broken_cols = [
-                f"`{col}` in `{m.name}`" for m in report.downstream_models for col in m.broken_columns
+                f"`{col}` in `{m.name}`"
+                for m in report.downstream_models
+                for col in m.broken_columns
             ]
             lines.append(f"| **Broken Column References** | {', '.join(broken_cols)} |")
 
@@ -71,7 +73,9 @@ class MarkdownFormatter:
                 old = f"`{c.old_expression}`" if c.old_expression else "*was present*"
                 new = f"`{c.new_expression or c.column_name}`"
                 expl = c.explanation.replace("|", "\\|") if c.explanation else ""
-                lines.append(f"| `{d.model_name}` | COLUMN ({c.diff_type.value}) | {old} | {new} | {expl} |")
+                lines.append(
+                    f"| `{d.model_name}` | COLUMN ({c.diff_type.value}) | {old} | {new} | {expl} |"
+                )
             for j in d.structural.join_diffs:
                 expl = j.explanation.replace("|", "\\|") if j.explanation else ""
                 lines.append(
@@ -130,10 +134,7 @@ class MarkdownFormatter:
             # but this guarantees we show per-model broken traces even if the top-level
             # field is not populated by older versions of the risk engine)
             all_impacts = [
-                ci
-                for m in report.downstream_models
-                for ci in m.column_impacts
-                if ci.is_broken
+                ci for m in report.downstream_models for ci in m.column_impacts if ci.is_broken
             ]
             if not all_impacts:
                 # Fallback: use top-level column_lineage_paths (broken only)
